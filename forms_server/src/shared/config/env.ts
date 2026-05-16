@@ -87,6 +87,7 @@ const envSchema = z.object({
   // Phase B: Notifications
   // ---------------------------------------------------------------------------
   RESEND_API_KEY: z.string().default('re_CHANGE_ME'),
+  RESEND_FROM_EMAIL: z.string().email().default('noreply@walrusforms.com'),
 
   // ---------------------------------------------------------------------------
   // Google Gemini API Key

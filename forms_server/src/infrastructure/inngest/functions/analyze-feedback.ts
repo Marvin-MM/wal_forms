@@ -9,6 +9,8 @@ import { eq, and } from 'drizzle-orm';
 import { WalrusClient } from '../../walrus/client.js';
 import { AIClient } from '../../ai/client.js';
 import { logger } from '../../../shared/logger.js';
+import { roomManager } from '../../../interface/ws/room-manager.js';
+import { WsEventType } from '../../../shared/types/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const analyzeFeedback: ReturnType<typeof inngest.createFunction> = inngest.createFunction(
@@ -85,6 +87,18 @@ export const analyzeFeedback: ReturnType<typeof inngest.createFunction> = innges
           jobStatus: 'completed',
           result: result as unknown as Record<string, unknown>,
         }).where(eq(analyses.id, analysisId));
+      });
+
+      roomManager.broadcast(formId, {
+        type: WsEventType.ANALYSIS_COMPLETE,
+        formId,
+        payload: { analysisId },
+        timestamp: new Date().toISOString(),
+      });
+
+      await inngest.send({
+        name: 'forms/analysis.completed',
+        data: { formId, analysisId },
       });
 
       return { status: 'completed', themes: result.themes.length };

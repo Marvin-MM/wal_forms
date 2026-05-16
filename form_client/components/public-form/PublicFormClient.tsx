@@ -13,16 +13,17 @@ import type { FormBranding, AccessPolicy } from "../../shared/types/entities";
 import type { FormSchemaType, FormField, SubmissionIdentityMode } from "../../shared/schemas/form-schema";
 import { env } from "../../lib/env";
 import { checkAccess } from "../../lib/api/access";
+import { createSubmissionUploadSession, confirmUpload } from "../../lib/api/uploads";
 import { queryKeys } from "../../lib/query-keys";
 import { Button } from "../ui/Button";
 import { Input, Textarea } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { SuiExplorerLink } from "../common/ExplorerLinks";
 import { useSubmissionFlow } from "../../hooks/useSubmissionFlow";
+import { uploadBlobPromise } from "../../lib/walrus";
 import { IdentityPanel } from "./IdentityPanel";
 import { WalletGate } from "./WalletGate";
 import { NotAuthorizedPage, PasswordGatePage } from "./AccessGatePages";
-import { SponsorshipSignModal } from "./SponsorshipSignModal";
 import { cn, walrusBlobUrl } from "../../lib/utils";
 
 function buildZodSchema(fields: FormField[]) {
@@ -39,15 +40,64 @@ function buildZodSchema(fields: FormField[]) {
       case "url": schema = z.string().url(); break;
       case "checkbox": schema = z.boolean(); break;
       case "multiselect": schema = z.array(z.string()); break;
+      case "file":
+          schema = z.any();
+        if (field.validation?.required) {
+          schema = schema.refine(
+            (value) => typeof FileList !== "undefined" && value instanceof FileList && value.length > 0,
+            "File is required"
+          );
+        }
+        break;
       default:
         schema = z.string();
         if (field.validation?.minLength) schema = (schema as z.ZodString).min(field.validation.minLength);
         if (field.validation?.maxLength) schema = (schema as z.ZodString).max(field.validation.maxLength);
     }
-    if (!field.validation?.required) schema = schema.optional();
+    if (field.type !== "file" && !field.validation?.required) schema = schema.optional();
     shape[field.id] = schema;
   }
   return z.object(shape);
+}
+
+async function uploadSubmissionFiles(
+  formId: string,
+  fields: FormField[],
+  data: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const payload = { ...data };
+  const fileFields = fields.filter((field) => field.type === "file");
+
+  for (const field of fileFields) {
+    const value = payload[field.id];
+    const file =
+      typeof FileList !== "undefined" && value instanceof FileList ? value.item(0) : null;
+
+    if (!file) {
+      delete payload[field.id];
+      continue;
+    }
+
+    const session = await createSubmissionUploadSession({
+      formId,
+      fieldId: field.id,
+      mimeType: file.type || "application/octet-stream",
+      fileSize: file.size,
+    });
+    const uploaded = await uploadBlobPromise(file, {
+      publisherEndpoint: session.publisherEndpoint,
+    });
+    await confirmUpload({ sessionToken: session.sessionToken, blobId: uploaded.blobId });
+
+    payload[field.id] = {
+      blobId: uploaded.blobId,
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+    };
+  }
+
+  return payload;
 }
 
 interface PublicFormClientProps {
@@ -73,19 +123,19 @@ export function PublicFormClient({
   const zodSchema = buildZodSchema(schema.fields);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [signModalDismissed, setSignModalDismissed] = useState(false);
   const [password, setPassword] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting: rhfIsSubmitting },
     setValue,
     watch,
   } = useForm({ resolver: zodResolver(zodSchema) });
 
   const { submit, status, result, isSubmitting, buttonLabel } = useSubmissionFlow({
     formId: form.id,
+    formObjectId: form.suiObjectId,
     identityMode,
     isPrivate: form.isPrivate,
     ownerWallet: form.ownerWallet,
@@ -95,10 +145,10 @@ export function PublicFormClient({
   const onSubmit = useCallback(
     async (data: Record<string, unknown>) => {
       if (!turnstileToken) return;
-      setSignModalDismissed(false);
-      await submit(data, turnstileToken, password ?? undefined);
+      const payload = await uploadSubmissionFiles(form.id, schema.fields, data);
+      await submit(payload, turnstileToken, password ?? undefined);
     },
-    [submit, turnstileToken, password, setSignModalDismissed]
+    [form.id, schema.fields, submit, turnstileToken, password]
   );
 
   const { data: allowlistAccess, isLoading: allowlistLoading } = useQuery({
@@ -136,7 +186,9 @@ export function PublicFormClient({
         <h2 className="text-xl font-bold text-[var(--text-primary)]">{successMsg}</h2>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
           {isAnon
-            ? "Your response was recorded on-chain by the platform."
+            ? result.digest
+              ? "Your response was recorded on-chain by the platform."
+              : "Your response was securely recorded."
             : "Your response was recorded on-chain with your wallet."}
         </p>
 
@@ -244,8 +296,8 @@ export function PublicFormClient({
             variant="primary"
             size="lg"
             className={cn("w-full", accentClass)}
-            disabled={isSubmitting || !turnstileToken}
-            loading={isSubmitting}
+            disabled={isSubmitting || rhfIsSubmitting || !turnstileToken}
+            loading={isSubmitting || rhfIsSubmitting}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -277,11 +329,6 @@ export function PublicFormClient({
 
   return (
     <>
-      <SponsorshipSignModal
-        open={status === "awaiting_signature" && !signModalDismissed}
-        onClose={() => setSignModalDismissed(true)}
-      />
-
       {accessPolicy?.requiresAllowlist && currentAccount && !allowlistLoading && allowlistAccess?.allowed === false ? (
         <NotAuthorizedPage formTitle={schema.title} />
       ) : accessPolicy?.requiresAllowlist || identityMode === "required_connected" ? (

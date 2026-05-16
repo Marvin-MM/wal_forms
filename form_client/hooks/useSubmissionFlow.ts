@@ -11,7 +11,13 @@
  *        → confirming → complete | error
  */
 import { useState, useCallback } from "react";
-import { useCurrentAccount, useSignTransaction } from "@mysten/dapp-kit";
+import {
+  useCurrentAccount,
+  useSignAndExecuteTransaction,
+  useSignPersonalMessage,
+  useSignTransaction,
+} from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 import type { SubmissionIdentityMode } from "../shared/schemas/form-schema";
 import {
@@ -22,6 +28,7 @@ import {
 import { encryptSubmission } from "../lib/seal";
 import { getSealConfig } from "../lib/api/misc";
 import { uploadBlobPromise } from "../lib/walrus";
+import { env } from "../lib/env";
 
 export type SubmissionStatus =
   | "idle"
@@ -35,12 +42,13 @@ export type SubmissionStatus =
 
 interface SubmissionResult {
   submissionId: string;
-  digest: string;
+  digest: string | null;
   suiObjectId: string | null;
 }
 
 interface UseSubmissionFlowOptions {
   formId: string;
+  formObjectId: string | null;
   identityMode: SubmissionIdentityMode;
   isPrivate: boolean;
   ownerWallet: string;
@@ -50,6 +58,7 @@ interface UseSubmissionFlowOptions {
 
 export function useSubmissionFlow({
   formId,
+  formObjectId,
   identityMode,
   isPrivate,
   ownerWallet,
@@ -57,6 +66,8 @@ export function useSubmissionFlow({
 }: UseSubmissionFlowOptions) {
   const currentAccount = useCurrentAccount();
   const { mutateAsync: signTransaction } = useSignTransaction();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
 
   const [status, setStatus] = useState<SubmissionStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +134,8 @@ export function useSubmissionFlow({
           return;
         }
 
-        // Sponsored two-phase flow
+        // Sponsored two-phase flow. This is intentionally unavailable in the UI
+        // until forms have a real indexed SponsorshipPool and client-built PTBs.
         if (sponsorshipEnabled) {
           setStatus("awaiting_sponsorship");
           const phase1 = await createSubmission(formId, {
@@ -150,8 +162,8 @@ export function useSubmissionFlow({
           setStatus("broadcasting");
           const phase2 = await createSubmission(formId, {
             identity_mode: "sponsored_complete",
-            submission_session_id: sponsored.sessionToken,
-            signed_tx_bytes: bytes + ":" + signature,
+            sessionToken: sponsored.sessionToken,
+            signedTxBytes: `${bytes}:${signature}`,
           });
           const complete = phase2 as SubmissionComplete;
 
@@ -169,36 +181,63 @@ export function useSubmissionFlow({
         }
 
         // Self-paid flow (wallet connected, no sponsorship)
+        if (!formObjectId) {
+          setStatus("awaiting_signature");
+          const signedMessage = buildConnectedSubmissionMessage({
+            formId,
+            blobId,
+            submitterWallet: walletAddress,
+            isEncrypted,
+          });
+          const { signature } = await signPersonalMessage({
+            message: new TextEncoder().encode(signedMessage),
+          });
+          const response = await createSubmission(formId, {
+            identity_mode: "connected_offchain",
+            blobId,
+            turnstileToken,
+            isEncrypted,
+            submitterWallet: walletAddress,
+            signedMessage,
+            signature,
+            password,
+          });
+          const complete = response as SubmissionComplete;
+          setStatus("confirming");
+          await new Promise((r) => setTimeout(r, 500));
+          setResult({ submissionId: complete.submissionId, digest: null, suiObjectId: null });
+          setStatus("complete");
+          return;
+        }
+
+        const tx = new Transaction();
+        tx.moveCall({
+          target: `${env.NEXT_PUBLIC_SUI_PACKAGE_ADDRESS}::submission::submit`,
+          arguments: [
+            tx.object(formObjectId),
+            tx.pure.vector("u8", blobIdToBytes(blobId)),
+            tx.pure.bool(isEncrypted),
+          ],
+        });
+
         setStatus("awaiting_signature");
+        const executed = await signAndExecuteTransaction({ transaction: tx });
+        const digest = "digest" in executed ? executed.digest : "";
+        if (!digest) throw new Error("Wallet transaction did not return a digest");
+
         const response = await createSubmission(formId, {
-          identity_mode: "sponsored", // phase 1 to get tx
+          identity_mode: "self_paid",
           blobId,
           turnstileToken,
           isEncrypted,
-          unsignedTxBytes: "",
           submitterWallet: walletAddress,
+          transactionDigest: digest,
           password,
         });
-
-        if ("phase" in response && response.phase === "sponsored") {
-          const sponsored = response as SubmissionSponsored;
-          const { signature, bytes } = await signTransaction({
-            transaction: sponsored.sponsoredTxBytesB64,
-          });
-          setStatus("broadcasting");
-          const phase2 = await createSubmission(formId, {
-            identity_mode: "sponsored_complete",
-            submission_session_id: sponsored.sessionToken,
-            signed_tx_bytes: bytes + ":" + signature,
-          });
-          setStatus("confirming");
-          await new Promise((r) => setTimeout(r, 800));
-          const complete = phase2 as SubmissionComplete;
-          setResult({ submissionId: complete.submissionId, digest: complete.digest, suiObjectId: null });
-        } else {
-          const complete = response as SubmissionComplete;
-          setResult({ submissionId: complete.submissionId, digest: complete.digest, suiObjectId: null });
-        }
+        const complete = response as SubmissionComplete;
+        setStatus("confirming");
+        await new Promise((r) => setTimeout(r, 800));
+        setResult({ submissionId: complete.submissionId, digest: complete.digest, suiObjectId: null });
         setStatus("complete");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Submission failed";
@@ -207,7 +246,18 @@ export function useSubmissionFlow({
         toast.error(msg);
       }
     },
-    [formId, identityMode, isPrivate, ownerWallet, sponsorshipEnabled, currentAccount, signTransaction]
+    [
+      formId,
+      formObjectId,
+      identityMode,
+      isPrivate,
+      ownerWallet,
+      sponsorshipEnabled,
+      currentAccount,
+      signTransaction,
+      signAndExecuteTransaction,
+      signPersonalMessage,
+    ]
   );
 
   const statusLabel: Record<SubmissionStatus, string> = {
@@ -230,4 +280,26 @@ export function useSubmissionFlow({
     isSubmitting: status !== "idle" && status !== "complete" && status !== "error",
     buttonLabel: statusLabel[status],
   };
+}
+
+function buildConnectedSubmissionMessage(params: {
+  formId: string;
+  blobId: string;
+  submitterWallet: string;
+  isEncrypted: boolean;
+}): string {
+  return [
+    "WalrusForms connected submission",
+    `Form: ${params.formId}`,
+    `Blob: ${params.blobId}`,
+    `Wallet: ${params.submitterWallet}`,
+    `Encrypted: ${params.isEncrypted ? "true" : "false"}`,
+  ].join("\n");
+}
+
+function blobIdToBytes(blobId: string): number[] {
+  const normalized = blobId.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+  const binary = atob(padded);
+  return Array.from(binary, (char) => char.charCodeAt(0));
 }

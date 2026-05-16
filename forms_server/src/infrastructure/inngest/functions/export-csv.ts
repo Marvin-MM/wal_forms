@@ -9,6 +9,8 @@ import { eq } from 'drizzle-orm';
 import { WalrusClient } from '../../walrus/client.js';
 import { logger } from '../../../shared/logger.js';
 import { validateEnv } from '../../../shared/config/env.js';
+import { roomManager } from '../../../interface/ws/room-manager.js';
+import { WsEventType } from '../../../shared/types/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const exportCsv: ReturnType<typeof inngest.createFunction> = inngest.createFunction(
@@ -94,6 +96,18 @@ export const exportCsv: ReturnType<typeof inngest.createFunction> = inngest.crea
           status: 'completed',
           resultBlobId: blobId,
         }).where(eq(exportJobs.id, exportId));
+      });
+
+      roomManager.broadcast(formId, {
+        type: WsEventType.EXPORT_COMPLETE,
+        formId,
+        payload: { exportId, blobId },
+        timestamp: new Date().toISOString(),
+      });
+
+      await inngest.send({
+        name: 'forms/export.completed',
+        data: { formId, exportId, blobId },
       });
 
       logger.info({ exportId, blobId, rowCount: rows.length - 1 }, '[Export] CSV export completed');

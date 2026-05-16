@@ -62,13 +62,13 @@ export const queryKeys = {
 
   // Analytics
   analytics: {
-    snapshots: (formId: string, wallet: string, limit?: number) =>
-      ["analytics", formId, wallet, limit] as const,
+    snapshots: (formId: string, limit?: number) =>
+      ["analytics", formId, limit] as const,
   },
 
   // Notifications
   notifications: {
-    prefs: (formId: string, wallet: string) => ["notifications", formId, wallet] as const,
+    prefs: (formId: string) => ["notifications", formId] as const,
   },
 
   // My submissions (submitter view)

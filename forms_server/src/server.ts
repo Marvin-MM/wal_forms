@@ -57,9 +57,6 @@ export function createServer(deps: ServerDeps) {
   const getServer = () => _server;
 
   const app = new Elysia()
-    // Phase B subdomains
-    .use(createNotificationRoutes(db))
-    .use(createAnalyticsRoutes(db))
     // Phase C subdomains
     .use(createMeRoutes(jwt, db))
     .use(createVerifyRoutes(db))
@@ -95,6 +92,8 @@ export function createServer(deps: ServerDeps) {
     .use(createSealRoutes(seal))
     .use(createBrandingRoutes(jwt, { db, walrus, sui }))
     .use(createAccessRoutes(jwt, { db, sui }))
+    .use(createNotificationRoutes(jwt, db))
+    .use(createAnalyticsRoutes(jwt, db))
     .use(createDashboardWs(jwt));
 
   return {

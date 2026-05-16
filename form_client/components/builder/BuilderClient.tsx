@@ -29,6 +29,7 @@ interface BuilderClientProps {
     schema: FormSchemaType;
     formId: string;
     isPrivate: boolean;
+    submissionIdentityMode?: "anonymous" | "optional_connected" | "required_connected";
   } | null;
 }
 
@@ -44,7 +45,13 @@ export function BuilderClient({ initialForm }: BuilderClientProps) {
     initialized.current = true;
     if (initialForm) {
       initFromSchema(initialForm.schema, initialForm.formId);
-      updateSettings({ isPrivate: initialForm.isPrivate });
+      updateSettings({
+        isPrivate: initialForm.isPrivate,
+        submissionIdentityMode:
+          initialForm.submissionIdentityMode ??
+          initialForm.schema.settings?.submissionIdentityMode ??
+          "anonymous",
+      });
     } else {
       resetBuilder();
     }

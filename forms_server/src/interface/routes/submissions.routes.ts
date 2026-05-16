@@ -21,6 +21,7 @@ import {
   submitSponsoredResponsePhase1,
   submitSponsoredResponsePhase2,
   submitSelfPaidResponse,
+  submitConnectedOffchainResponse,
   listSubmissions,
   getSubmission,
   updateSubmission,
@@ -80,6 +81,11 @@ export function createSubmissionsRoutes(
         case 'self_paid':
           return successResponse(
             await submitSelfPaidResponse(formId, parsed, deps, remoteIp)
+          );
+
+        case 'connected_offchain':
+          return successResponse(
+            await submitConnectedOffchainResponse(formId, parsed, deps, remoteIp)
           );
       }
     })

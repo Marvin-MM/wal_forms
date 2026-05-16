@@ -40,8 +40,8 @@ export type SponsoredPhase1Input = {
 
 export type SponsoredPhase2Input = {
   identity_mode: "sponsored_complete";
-  submission_session_id: string;
-  signed_tx_bytes: string;
+  sessionToken: string;
+  signedTxBytes: string;
 };
 
 export type SelfPaidInput = {
@@ -54,19 +54,31 @@ export type SelfPaidInput = {
   password?: string;
 };
 
+export type ConnectedOffchainInput = {
+  identity_mode: "connected_offchain";
+  blobId: string;
+  turnstileToken: string;
+  isEncrypted: boolean;
+  submitterWallet: string;
+  signedMessage: string;
+  signature: string;
+  password?: string;
+};
+
 export type CreateSubmissionInput =
   | AnonymousSubmissionInput
   | SponsoredPhase1Input
   | SponsoredPhase2Input
-  | SelfPaidInput;
+  | SelfPaidInput
+  | ConnectedOffchainInput;
 
 // ── Response shapes ───────────────────────────────────────────────────────────
 
 export interface SubmissionComplete {
   phase: "complete";
   submissionId: string;
-  digest: string;
-  suiObjectId: string | null;
+  digest: string | null;
+  suiObjectId?: string | null;
 }
 
 export interface SubmissionSponsored {

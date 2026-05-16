@@ -25,7 +25,12 @@ export default async function EditBuilderPage({ params }: EditBuilderPageProps) 
     const form = await getForm(formId);
     const parsed = FormSchemaDefinition.safeParse(form.denormalizedSchema);
     if (parsed.success) {
-      initialForm = { schema: parsed.data, formId, isPrivate: form.isPrivate };
+      initialForm = {
+        schema: parsed.data,
+        formId,
+        isPrivate: form.isPrivate,
+        submissionIdentityMode: form.submissionIdentityMode,
+      };
     }
   } catch {
     // fall through to empty builder

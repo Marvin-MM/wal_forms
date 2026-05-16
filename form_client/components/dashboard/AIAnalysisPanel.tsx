@@ -77,14 +77,27 @@ export function AIAnalysisPanel({ formId, onClose }: AIAnalysisPanelProps) {
             {/* Sentiment */}
             <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-tertiary)]">Sentiment</p>
-              <p className="text-sm text-[var(--text-primary)]">{data.result.sentimentSummary}</p>
+              <div className="text-sm text-[var(--text-primary)]">
+                {typeof data.result.sentimentSummary === 'object' && data.result.sentimentSummary !== null ? (
+                  <>
+                    <p className="mb-1 font-medium capitalize">{data.result.sentimentSummary.overall}</p>
+                    <div className="flex gap-3 text-xs">
+                      <span className="text-[var(--color-success)]">Positive: {data.result.sentimentSummary.positive}</span>
+                      <span className="text-[var(--text-secondary)]">Neutral: {data.result.sentimentSummary.neutral}</span>
+                      <span className="text-[var(--color-error)]">Negative: {data.result.sentimentSummary.negative}</span>
+                    </div>
+                  </>
+                ) : (
+                  data.result.sentimentSummary
+                )}
+              </div>
             </div>
 
             {/* Themes */}
             <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-tertiary)]">Theme Clusters</p>
               <div className="space-y-1">
-                {data.result.themeClusters.slice(0, 5).map((t) => (
+                {data.result.themeClusters?.slice(0, 5).map((t) => (
                   <div key={t.theme} className="flex items-center justify-between text-sm">
                     <span className="text-[var(--text-primary)]">{t.theme}</span>
                     <Badge variant="default">{t.count}</Badge>
@@ -97,9 +110,19 @@ export function AIAnalysisPanel({ formId, onClose }: AIAnalysisPanelProps) {
             <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-tertiary)]">Recommendations</p>
               <ul className="space-y-1">
-                {data.result.priorityRecommendations.slice(0, 4).map((r, i) => (
-                  <li key={i} className="text-xs text-[var(--text-secondary)]">• {r}</li>
-                ))}
+                {data.result.priorityRecommendations?.slice(0, 4).map((r, i: number) => {
+                  if (typeof r === 'object' && r !== null) {
+                    return (
+                      <li key={i} className="text-xs text-[var(--text-secondary)] mb-1">
+                        <span className="font-medium text-[var(--text-primary)]">{r.suggestedPriority ? `[${r.suggestedPriority}] ` : ''}</span>
+                        {r.reason || JSON.stringify(r)}
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={i} className="text-xs text-[var(--text-secondary)]">• {r}</li>
+                  );
+                })}
               </ul>
             </div>
           </div>

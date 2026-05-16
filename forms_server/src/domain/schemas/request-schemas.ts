@@ -45,6 +45,8 @@ export const CreateFormSchema = z.object({
 
 export const UpdateFormSchemaInput = z.object({
   schema: FormSchemaDefinition,
+  isPrivate: z.boolean().optional(),
+  submissionIdentityMode: SubmissionIdentityModeEnum.optional(),
 });
 
 export const ListFormsQuerySchema = z.object({
@@ -117,12 +119,25 @@ export const SelfPaidSubmissionBodySchema = SubmissionBaseSchema.extend({
   submitterWallet: z.string().min(1, 'Submitter wallet is required for self-paid submissions'),
 });
 
+/**
+ * Off-chain connected fallback — used only when a form has no on-chain object
+ * to submit against. The submitter signs a deterministic attestation message
+ * so the server can verify wallet ownership before recording the submission.
+ */
+export const ConnectedOffchainSubmissionBodySchema = SubmissionBaseSchema.extend({
+  identity_mode: z.literal('connected_offchain'),
+  submitterWallet: z.string().min(1, 'Submitter wallet is required for connected submissions'),
+  signedMessage: z.string().min(1, 'Signed submission message is required'),
+  signature: z.string().min(1, 'Submission signature is required'),
+});
+
 /** Discriminated union for the POST /forms/:formId/submissions body. */
 export const CreateSubmissionSchema = z.discriminatedUnion('identity_mode', [
   AnonymousSubmissionBodySchema,
   SponsoredSubmissionPhase1BodySchema,
   SponsoredSubmissionPhase2BodySchema,
   SelfPaidSubmissionBodySchema,
+  ConnectedOffchainSubmissionBodySchema,
 ]);
 
 export type CreateSubmissionInput = z.infer<typeof CreateSubmissionSchema>;
@@ -165,6 +180,13 @@ export const CreateUploadSessionSchema = z.object({
   allowedMimeTypes: z.array(z.string()).min(1).default(['*/*']),
   maxFileSize: z.number().int().positive().default(10 * 1024 * 1024), // 10MB default
   uploadPurpose: z.enum(UPLOAD_PURPOSES).default('submission'),
+});
+
+export const CreateSubmissionUploadSessionSchema = z.object({
+  formId: z.string().uuid(),
+  fieldId: z.string().min(1).max(100),
+  mimeType: z.string().min(1).default('application/octet-stream'),
+  fileSize: z.number().int().positive(),
 });
 
 export const ConfirmUploadSchema = z.object({

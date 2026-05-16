@@ -13,6 +13,19 @@ export async function createUploadSession(input: {
   });
 }
 
+export async function createSubmissionUploadSession(input: {
+  formId: string;
+  fieldId: string;
+  mimeType: string;
+  fileSize: number;
+}): Promise<UploadSession> {
+  return apiRequest<UploadSession>("/uploads/submission-session", {
+    method: "POST",
+    body: input,
+    skipAuth: true,
+  });
+}
+
 export async function confirmUpload(input: {
   sessionToken: string;
   blobId: string;
@@ -20,5 +33,6 @@ export async function confirmUpload(input: {
   return apiRequest<{ blobId: string; confirmed: boolean }>("/uploads/confirm", {
     method: "POST",
     body: input,
+    skipAuth: true,
   });
 }

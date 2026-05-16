@@ -12,7 +12,9 @@ export interface Form {
   schemaVersion: number;
   suiObjectId: string | null;
   isPrivate: boolean;
+  isClosed: boolean;
   isDeleted: boolean;
+  submissionIdentityMode: SubmissionIdentityMode;
   denormalizedSchema: FormSchemaType;
   title: string;
   description: string | null;
@@ -85,8 +87,12 @@ export type JobStatus = "pending" | "running" | "completed" | "failed";
 
 export interface AnalysisResult {
   themeClusters: Array<{ theme: string; count: number; examples: string[] }>;
-  sentimentSummary: string;
-  priorityRecommendations: string[];
+  sentimentSummary:
+    | string
+    | { overall?: string; positive?: number; neutral?: number; negative?: number };
+  priorityRecommendations: Array<
+    string | { suggestedPriority?: string; reason?: string; [key: string]: unknown }
+  >;
   totalAnalyzed: number;
 }
 
@@ -175,19 +181,11 @@ export type NotificationFrequency = "immediate" | "hourly" | "daily";
 export interface NotificationPreferences {
   id: string;
   formId: string;
-  walletAddress: string;
-  emailEnabled: boolean;
-  emailAddress: string | null;
-  emailFrequency: NotificationFrequency;
-  webhookEnabled: boolean;
-  webhookUrl: string | null;
-  webhookSecret: string | null;
-  discordEnabled: boolean;
+  emailAddresses: string[];
   discordWebhookUrl: string | null;
-  notifyOnNewSubmission: boolean;
-  notifyOnAnalysisComplete: boolean;
-  notifyOnExportComplete: boolean;
-  notifyOnStorageWarning: boolean;
+  customWebhookUrl: string | null;
+  customWebhookSecret: string | null;
+  frequency: NotificationFrequency;
   createdAt: string;
   updatedAt: string;
 }
@@ -209,13 +207,13 @@ export interface FieldAnalytics {
 }
 
 export interface AnalyticsSnapshot {
+  id: string;
   formId: string;
+  periodStart: string;
+  resolution: "daily" | "hourly";
   totalSubmissions: number;
-  submissionsLast24h: number;
-  submissionsLast7d: number;
-  avgDailyRate: number;
-  isStale: boolean;
-  lastUpdated: string;
-  dailySeries: Array<{ date: string; count: number }>;
-  fieldAnalytics: FieldAnalytics[];
+  anonymousSubmissions: number;
+  sponsoredSubmissions: number;
+  selfPaidSubmissions: number;
+  createdAt: string;
 }

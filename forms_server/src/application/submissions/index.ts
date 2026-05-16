@@ -22,14 +22,33 @@ import {
 } from '../../infrastructure/db/schema.js';
 import { NotFoundError, AuthorizationError, TurnstileError, SessionExpiredError } from '../../shared/errors/index.js';
 import { verifyTurnstileToken } from '../../infrastructure/turnstile/client.js';
+import { verifySiWSSignature } from '../../infrastructure/auth/siws.js';
 import { logger } from '../../shared/logger.js';
 import { checkSubmissionAccess, throwAccessDenied } from '../access/index.js';
+import { inngest } from '../../infrastructure/inngest/client.js';
+import { roomManager } from '../../interface/ws/room-manager.js';
+import { WsEventType } from '../../shared/types/index.js';
 
 export interface SubmissionDeps {
   db: Database;
   walrus: WalrusClient;
   sui: SuiBlockchainClient;
   turnstileSecret: string;
+}
+
+function buildConnectedSubmissionMessage(params: {
+  formId: string;
+  blobId: string;
+  submitterWallet: string;
+  isEncrypted: boolean;
+}): string {
+  return [
+    'WalrusForms connected submission',
+    `Form: ${params.formId}`,
+    `Blob: ${params.blobId}`,
+    `Wallet: ${params.submitterWallet}`,
+    `Encrypted: ${params.isEncrypted ? 'true' : 'false'}`,
+  ].join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +67,24 @@ async function verifyBlobExists(blobId: string, walrus: WalrusClient): Promise<v
   }
   // TODO: add walrus.fetchBlobMetadata(blobId) when the method is available
   // For now we trust the client-reported blobId and rely on on-chain receipt
+}
+
+async function emitSubmissionCreated(formId: string, submission: typeof submissions.$inferSelect) {
+  roomManager.broadcast(formId, {
+    type: WsEventType.NEW_SUBMISSION,
+    formId,
+    payload: submission,
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    await inngest.send({
+      name: 'forms/submission.created',
+      data: { formId, submissionId: submission.id },
+    });
+  } catch (error) {
+    logger.warn({ formId, submissionId: submission.id, error }, '[Submissions] Failed to emit submission event');
+  }
 }
 
 
@@ -92,13 +129,24 @@ export async function submitAnonymousResponse(
 
   // 5. Execute on-chain anonymously using server wallet
   const serverAddress = deps.sui.getServerWalletAddress();
-  const { digest } = await deps.sui.submitAnonymous({
-    formObjectId: form.suiObjectId ?? '0x0',
-    blobId: params.blobId,
-    isEncrypted: params.isEncrypted,
-    submitterAddress: null,
-    sponsorshipPoolObjectId: null, // anonymous forms don't use sponsorship pools
-  });
+  let digest: string | null = null;
+  if (form.suiObjectId) {
+    try {
+      const result = await deps.sui.submitAnonymous({
+        formObjectId: form.suiObjectId,
+        blobId: params.blobId,
+        isEncrypted: params.isEncrypted,
+        submitterAddress: null,
+        sponsorshipPoolObjectId: null,
+      });
+      digest = result.digest;
+    } catch (error) {
+      logger.warn(
+        { formId, error },
+        '[Submissions] Anonymous on-chain write failed; storing off-chain receipt only'
+      );
+    }
+  }
 
   // 6. Write DB record
   const [submission] = await deps.db.insert(submissions).values({
@@ -115,6 +163,7 @@ export async function submitAnonymousResponse(
   }).returning();
 
   logger.info({ submissionId: submission!.id, formId, blobId: params.blobId, mode: 'anonymous' }, '[Submissions] Anonymous submission created');
+  await emitSubmissionCreated(formId, submission!);
   return { submissionId: submission!.id, phase: 'complete' as const, digest };
 }
 
@@ -259,6 +308,7 @@ export async function submitSponsoredResponsePhase2(
   }).returning();
 
   logger.info({ submissionId: submission!.id, formId, digest }, '[Submissions] Sponsored submission complete');
+  await emitSubmissionCreated(formId, submission!);
   return { submissionId: submission!.id, phase: 'complete' as const, digest };
 }
 
@@ -315,7 +365,87 @@ export async function submitSelfPaidResponse(
   }).returning();
 
   logger.info({ submissionId: submission!.id, formId, digest: params.transactionDigest }, '[Submissions] Self-paid submission indexed');
+  await emitSubmissionCreated(formId, submission!);
   return { submissionId: submission!.id, phase: 'complete' as const, digest: params.transactionDigest };
+}
+
+// ---------------------------------------------------------------------------
+// Flow 4 — Connected Off-chain Fallback
+// ---------------------------------------------------------------------------
+
+export async function submitConnectedOffchainResponse(
+  formId: string,
+  params: {
+    blobId: string;
+    turnstileToken: string;
+    isEncrypted: boolean;
+    submitterWallet: string;
+    signedMessage: string;
+    signature: string;
+    password?: string;
+  },
+  deps: SubmissionDeps,
+  remoteIp?: string
+) {
+  const valid = await verifyTurnstileToken(params.turnstileToken, deps.turnstileSecret, remoteIp);
+  if (!valid) throw new TurnstileError();
+
+  const [form] = await deps.db
+    .select()
+    .from(forms)
+    .where(and(eq(forms.id, formId), eq(forms.isDeleted, false)));
+  if (!form) throw new NotFoundError('Form', formId);
+
+  const expectedMessage = buildConnectedSubmissionMessage({
+    formId,
+    blobId: params.blobId,
+    submitterWallet: params.submitterWallet,
+    isEncrypted: params.isEncrypted,
+  });
+  if (params.signedMessage !== expectedMessage) {
+    throw new AuthorizationError('Submission signature message mismatch');
+  }
+
+  const signatureValid = await verifySiWSSignature(
+    params.signedMessage,
+    params.signature,
+    params.submitterWallet
+  );
+  if (!signatureValid) throw new AuthorizationError('Invalid submission signature');
+
+  const access = await checkSubmissionAccess(
+    formId,
+    { walletAddress: params.submitterWallet, password: params.password },
+    deps.db
+  );
+  if (!access.allowed) throwAccessDenied(access.denialReason!);
+
+  await verifyBlobExists(params.blobId, deps.walrus);
+
+  const identityMode =
+    form.submissionIdentityMode === 'anonymous'
+      ? 'optional_connected'
+      : form.submissionIdentityMode;
+
+  const [submission] = await deps.db.insert(submissions).values({
+    formId,
+    walrusBlobId: params.blobId,
+    suiObjectId: null,
+    isEncrypted: params.isEncrypted,
+    submitterWallet: params.submitterWallet,
+    priority: 'medium',
+    submissionIdentityMode: identityMode,
+    isAnonymous: false,
+    isSponsored: false,
+    sponsorAddress: null,
+  }).returning();
+
+  logger.info(
+    { submissionId: submission!.id, formId, wallet: params.submitterWallet },
+    '[Submissions] Connected off-chain submission created'
+  );
+  await emitSubmissionCreated(formId, submission!);
+  return { submissionId: submission!.id, phase: 'complete' as const, digest: null };
 }
 
 // ---------------------------------------------------------------------------

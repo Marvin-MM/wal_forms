@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Shield, Lock, ExternalLink, Edit3, Save } from "lucide-react";
+import { Shield, Lock, Edit3, Save } from "lucide-react";
 import type { Form, Submission } from "../../shared/types/entities";
 import type { SubmissionPriority } from "../../shared/types/entities";
 import { Drawer } from "../ui/Drawer";
-import { PriorityBadge, Badge } from "../ui/Badge";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 import { WalletAddress } from "../common/CopyButton";
@@ -14,7 +14,7 @@ import { fetchBlobAsJson } from "../../lib/walrus";
 import { decryptSubmission } from "../../lib/seal";
 import { getSealConfig } from "../../lib/api/misc";
 import { queryKeys } from "../../lib/query-keys";
-import { formatDate } from "../../lib/utils";
+import { formatDate, walrusBlobUrl } from "../../lib/utils";
 import { useSignTransaction, useCurrentAccount } from "@mysten/dapp-kit";
 import { toast } from "sonner";
 
@@ -33,6 +33,15 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
   const [decrypting, setDecrypting] = useState(false);
   const { mutateAsync: signTx } = useSignTransaction();
   const currentAccount = useCurrentAccount();
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setNotes(submission?.adminNotes ?? "");
+      setPriority(submission?.priority ?? "medium");
+      setEditingNotes(false);
+      setDecryptedData(null);
+    });
+  }, [submission?.id, submission?.adminNotes, submission?.priority]);
 
   const { data: blobData, isLoading: blobLoading } = useQuery({
     queryKey: queryKeys.submissions.blob(submission?.walrusBlobId ?? ""),
@@ -75,6 +84,19 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
   }
 
   const displayData = decryptedData ?? (blobData && !submission?.isEncrypted ? blobData : null);
+  const responseRows = useMemo(() => {
+    if (!displayData) return [];
+    const schema = form.denormalizedSchema;
+    return Object.entries(displayData).map(([fieldId, value]) => {
+      const field = schema.fields.find((candidate) => candidate.id === fieldId);
+      return {
+        fieldId,
+        label: field?.label ?? fieldId,
+        type: field?.type ?? "text",
+        value,
+      };
+    });
+  }, [displayData, form.denormalizedSchema]);
 
   return (
     <Drawer
@@ -97,6 +119,22 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
                 }
               </div>
               <div className="flex items-center justify-between">
+                <span className="text-[var(--text-secondary)]">Identity</span>
+                <Badge variant="default">{submission.submissionIdentityMode ?? "unknown"}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--text-secondary)]">Gas</span>
+                <Badge variant={submission.isSponsored ? "brand" : "default"}>
+                  {submission.isSponsored ? "Sponsored" : "Self-paid/server"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--text-secondary)]">Reviewed</span>
+                <Badge variant={submission.isReviewed ? "success" : "default"}>
+                  {submission.isReviewed ? "Reviewed" : "Needs review"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-[var(--text-secondary)]">Encrypted</span>
                 <Badge variant={submission.isEncrypted ? "brand" : "default"}>
                   {submission.isEncrypted ? "Yes (Seal)" : "No"}
@@ -110,10 +148,14 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
               )}
               {submission.suiObjectId && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[var(--text-secondary)]">Sui receipt</span>
+                  <span className="text-[var(--text-secondary)]">Sui digest</span>
                   <SuiExplorerLink objectId={submission.suiObjectId} label="View" />
                 </div>
               )}
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--text-secondary)]">Created</span>
+                <span className="text-xs text-[var(--text-tertiary)]">{formatDate(submission.createdAt)}</span>
+              </div>
             </div>
           </div>
 
@@ -136,17 +178,17 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
             )}
             {displayData ? (
               <div className="space-y-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4">
-                {Object.entries(displayData).map(([key, val]) => (
-                  <div key={key} className="grid grid-cols-[auto_1fr] gap-3">
-                    <span className="text-xs font-medium text-[var(--text-tertiary)] whitespace-nowrap">{key}</span>
-                    <span className="text-sm text-[var(--text-primary)] break-all">{String(val)}</span>
+                {responseRows.map((row) => (
+                  <div key={row.fieldId} className="grid gap-1 border-b border-[var(--border-subtle)] pb-2 last:border-0 last:pb-0">
+                    <span className="text-xs font-medium text-[var(--text-tertiary)]">{row.label}</span>
+                    <AnswerValue value={row.value} />
                   </div>
                 ))}
               </div>
             ) : submission.isEncrypted && !decryptedData ? (
               <div className="flex items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--color-info-bg)] p-4 text-sm text-[var(--color-info)]">
                 <Shield className="h-4 w-4 shrink-0" />
-                Content is Seal-encrypted. Click "Decrypt with wallet" to view.
+                Content is Seal-encrypted. Click &quot;Decrypt with wallet&quot; to view.
               </div>
             ) : null}
           </div>
@@ -192,4 +234,60 @@ export function SubmissionDetailDrawer({ submission, form, onClose, onUpdate }: 
       )}
     </Drawer>
   );
+}
+
+function AnswerValue({ value }: { value: unknown }) {
+  if (isFileAnswer(value)) {
+    const isImage = value.type.startsWith("image/");
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-[var(--text-primary)]">{value.name}</span>
+          <span className="text-xs text-[var(--text-tertiary)]">
+            {value.type} · {formatBytes(value.size)}
+          </span>
+          <WalrusLink blobId={value.blobId} />
+        </div>
+        {isImage && (
+          <img 
+            src={walrusBlobUrl(value.blobId)}
+            alt={value.name}
+            className="max-h-48 rounded-lg object-contain border border-[var(--border-subtle)]"
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (Array.isArray(value)) {
+    return <span className="text-sm text-[var(--text-primary)]">{value.join(", ")}</span>;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return (
+      <pre className="max-h-48 overflow-auto rounded-lg bg-[var(--bg-subtle)] p-2 text-xs text-[var(--text-secondary)]">
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    );
+  }
+
+  return <span className="text-sm text-[var(--text-primary)] break-words">{String(value)}</span>;
+}
+
+function isFileAnswer(value: unknown): value is { blobId: string; name: string; size: number; type: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "blobId" in value &&
+    "name" in value &&
+    "size" in value &&
+    "type" in value
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }

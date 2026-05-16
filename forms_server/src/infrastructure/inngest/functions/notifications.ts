@@ -29,7 +29,7 @@ export const sendSubmissionNotification: ReturnType<typeof inngest.createFunctio
         return { skipped: true, reason: 'No immediate notifications configured' };
       }
 
-      const resendClient = new ResendClient({ apiKey: env.RESEND_API_KEY, fromEmail: 'noreply@walrusforms.com' });
+      const resendClient = new ResendClient({ apiKey: env.RESEND_API_KEY, fromEmail: env.RESEND_FROM_EMAIL });
       const discordClient = new DiscordClient();
       const webhookClient = new WebhookClient();
 
@@ -38,7 +38,25 @@ export const sendSubmissionNotification: ReturnType<typeof inngest.createFunctio
           await resendClient.sendEmail({
             to: prefs.emailAddresses,
             subject: 'New Submission on WalrusForms',
-            html: `<p>A new submission was received for form ID: ${formId}</p>`,
+            html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #eaeaea; border-radius: 8px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #111827; margin: 0; font-size: 24px; font-weight: 600;">New Form Submission</h2>
+                  <p style="color: #6b7280; margin-top: 8px; font-size: 15px;">A new response was recorded securely.</p>
+                </div>
+                <div style="background-color: #f9fafb; padding: 20px; border-radius: 6px; border: 1px solid #f3f4f6; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px; color: #4b5563; font-size: 14px;"><strong>Form ID:</strong> <span style="color: #111827; font-family: monospace;">${formId}</span></p>
+                  <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong>Submission ID:</strong> <span style="color: #111827; font-family: monospace;">${submissionId}</span></p>
+                </div>
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <a href="${env.CORS_ALLOWED_ORIGINS}/dashboard/${formId}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 15px;">View Submission</a>
+                </div>
+                <div style="border-top: 1px solid #eaeaea; padding-top: 20px; text-align: center; color: #9ca3af; font-size: 13px;">
+                  <p style="margin: 0;">Powered by <strong>WalrusForms</strong></p>
+                  <p style="margin: 4px 0 0;">Decentralized & On-chain Verifiable</p>
+                </div>
+              </div>
+            `,
           });
           await db.insert(notificationLogs).values({ formId, channel: 'email', type: 'submission', status: 'success' });
         } catch (e) {

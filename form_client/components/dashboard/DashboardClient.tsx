@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { Form, Submission } from "../../shared/types/entities";
 import type { PaginatedResponse } from "../../shared/types/api";
 import { listSubmissions, updateSubmission } from "../../lib/api/submissions";
-import { triggerAnalysis, getAnalysis } from "../../lib/api/analysis";
+import { triggerAnalysis } from "../../lib/api/analysis";
 import { triggerExport } from "../../lib/api/export";
 import { queryKeys } from "../../lib/query-keys";
 import { useWebSocket, WsEventType } from "../../hooks/useWebSocket";
@@ -14,6 +14,8 @@ import { SubmissionsTable } from "./SubmissionsTable";
 import { SubmissionDetailDrawer } from "./SubmissionDetailDrawer";
 import { DashboardStatsBar } from "./DashboardStatsBar";
 import { AIAnalysisPanel } from "./AIAnalysisPanel";
+import { AnalyticsPanel } from "./AnalyticsPanel";
+import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 
 interface DashboardClientProps {
   form: Form;
@@ -25,9 +27,11 @@ export function DashboardClient({ form, initialSubmissions }: DashboardClientPro
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [search, setSearch] = useState("");
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [liveSubmissions, setLiveSubmissions] = useState<Submission[]>([]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: queryKeys.submissions.list(form.id, { page: 1, pageSize: 25, search }),
     queryFn: () => listSubmissions(form.id, { page: 1, pageSize: 25, search }),
     initialData: initialSubmissions ?? undefined,
@@ -91,6 +95,32 @@ export function DashboardClient({ form, initialSubmissions }: DashboardClientPro
     (s, i, arr) => arr.findIndex((x) => x.id === s.id) === i
   );
 
+  function exportVisibleRows() {
+    const rows = [
+      ["id", "created_at", "submitter", "identity_mode", "is_anonymous", "is_sponsored", "is_encrypted", "priority", "reviewed"],
+      ...allSubmissions.map((submission) => [
+        submission.id,
+        submission.createdAt,
+        submission.submitterWallet ?? "anonymous",
+        submission.submissionIdentityMode ?? "",
+        String(submission.isAnonymous),
+        String(submission.isSponsored),
+        String(submission.isEncrypted),
+        submission.priority,
+        String(submission.isReviewed),
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${form.title.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}-visible-submissions.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <AuthGuard>
       <div className="flex h-full flex-col overflow-hidden">
@@ -101,11 +131,18 @@ export function DashboardClient({ form, initialSubmissions }: DashboardClientPro
           wsStatus={wsStatus}
           onAnalyze={() => { void triggerAnalysis(form.id).then(() => toast.info("Analysis started…")); }}
           onExport={() => { void triggerExport(form.id).then(() => toast.info("Export started…")); }}
+          onExportVisible={exportVisibleRows}
           onToggleAnalysis={() => setAnalysisOpen((v) => !v)}
+          onToggleAnalytics={() => setAnalyticsOpen((v) => !v)}
+          onToggleNotifications={() => setNotificationsOpen((v) => !v)}
         />
 
         {/* AI Analysis panel */}
         {analysisOpen && <AIAnalysisPanel formId={form.id} onClose={() => setAnalysisOpen(false)} />}
+        {analyticsOpen && <AnalyticsPanel formId={form.id} onClose={() => setAnalyticsOpen(false)} />}
+        {notificationsOpen && (
+          <NotificationSettingsPanel formId={form.id} onClose={() => setNotificationsOpen(false)} />
+        )}
 
         {/* Submissions table */}
         <div className="flex-1 overflow-hidden">

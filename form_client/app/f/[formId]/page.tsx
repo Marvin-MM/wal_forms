@@ -88,7 +88,9 @@ export default async function PublicFormPage({ params }: PublicFormPageProps) {
   // (password stored in component state, allowlist checked after wallet connection)
 
   const identityMode =
-    form.denormalizedSchema.settings?.submissionIdentityMode ?? "anonymous";
+    form.submissionIdentityMode ??
+    form.denormalizedSchema.settings?.submissionIdentityMode ??
+    "anonymous";
 
   // Apply background color from branding
   const bgStyle = branding?.backgroundColor

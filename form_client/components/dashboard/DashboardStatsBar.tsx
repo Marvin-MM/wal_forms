@@ -1,9 +1,8 @@
 "use client";
-import { BarChart3, Download, Wifi, WifiOff, Brain } from "lucide-react";
+import { BarChart3, Bell, Download, Wifi, WifiOff, Brain } from "lucide-react";
 import type { Form } from "../../shared/types/entities";
 import type { WsStatus } from "../../hooks/useWebSocket";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
 
@@ -13,10 +12,23 @@ interface DashboardStatsBarProps {
   wsStatus: WsStatus;
   onAnalyze: () => void;
   onExport: () => void;
+  onExportVisible: () => void;
   onToggleAnalysis: () => void;
+  onToggleAnalytics: () => void;
+  onToggleNotifications: () => void;
 }
 
-export function DashboardStatsBar({ form, total, wsStatus, onAnalyze, onExport, onToggleAnalysis }: DashboardStatsBarProps) {
+export function DashboardStatsBar({
+  form,
+  total,
+  wsStatus,
+  onAnalyze,
+  onExport,
+  onExportVisible,
+  onToggleAnalysis,
+  onToggleAnalytics,
+  onToggleNotifications,
+}: DashboardStatsBarProps) {
   const isConnected = wsStatus === "authenticated";
 
   return (
@@ -38,11 +50,27 @@ export function DashboardStatsBar({ form, total, wsStatus, onAnalyze, onExport, 
         </Link>
         <Button variant="ghost" size="sm" onClick={onToggleAnalysis}>
           <Brain className="h-4 w-4" />
-          Analysis
+          AI
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onAnalyze}>
+          <Brain className="h-4 w-4" />
+          Run AI
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onToggleAnalytics}>
+          <BarChart3 className="h-4 w-4" />
+          Metrics
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onToggleNotifications}>
+          <Bell className="h-4 w-4" />
+          Alerts
         </Button>
         <Button variant="ghost" size="sm" onClick={onExport}>
           <Download className="h-4 w-4" />
-          Export CSV
+          Full export
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onExportVisible}>
+          <Download className="h-4 w-4" />
+          Visible CSV
         </Button>
       </div>
     </div>

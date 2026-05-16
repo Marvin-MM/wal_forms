@@ -1,6 +1,6 @@
 "use client";
-import { useConnectWallet, useCurrentAccount, useDisconnectWallet, useWallets } from "@mysten/dapp-kit";
-import { useState } from "react";
+import { useConnectWallet, useCurrentAccount, useWallets } from "@mysten/dapp-kit";
+import { useEffect, useState } from "react";
 import { Wallet, ChevronDown, LogOut, LogIn } from "lucide-react";
 import { Button } from "../ui/Button";
 import { WalletAddress } from "../common/CopyButton";
@@ -11,11 +11,30 @@ import { toast } from "sonner";
 export function WalletConnectButton() {
   const wallets = useWallets();
   const { mutate: connectWallet, isPending: isConnecting } = useConnectWallet();
-  const { mutate: disconnectWallet } = useDisconnectWallet();
   const currentAccount = useCurrentAccount();
   const { isAuthenticated, signIn, signOut, isInitializing } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [signInAfterConnect, setSignInAfterConnect] = useState(false);
+
+  useEffect(() => {
+    if (!signInAfterConnect || !currentAccount || isAuthenticated || isSigningIn) return;
+
+    queueMicrotask(() => {
+      setIsSigningIn(true);
+      void signIn()
+        .then(() => {
+          toast.success("Signed in successfully");
+        })
+        .catch((err) => {
+          toast.error(err instanceof Error ? err.message : "Sign-in failed");
+        })
+        .finally(() => {
+          setIsSigningIn(false);
+          setSignInAfterConnect(false);
+        });
+    });
+  }, [currentAccount, isAuthenticated, isSigningIn, signIn, signInAfterConnect]);
 
   if (isInitializing) {
     return <div className="h-9 w-32 rounded-lg skeleton" />;
@@ -31,6 +50,7 @@ export function WalletConnectButton() {
         onClick={() => {
           const preferred = wallets[0];
           if (preferred) {
+            setSignInAfterConnect(true);
             connectWallet({ wallet: preferred });
           } else {
             toast.error("No Sui wallet detected. Please install Sui Wallet or Suiet.");
@@ -38,7 +58,7 @@ export function WalletConnectButton() {
         }}
       >
         <Wallet className="h-4 w-4" />
-        Connect Wallet
+        Connect & sign in
       </Button>
     );
   }

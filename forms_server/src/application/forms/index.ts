@@ -79,7 +79,7 @@ export async function getForm(formId: string, deps: Pick<FormDeps, 'db'>) {
 
 export async function updateFormSchema(
   formId: string,
-  params: { schema: FormSchemaType },
+  params: { schema: FormSchemaType; isPrivate?: boolean; submissionIdentityMode?: string },
   wallet: string,
   deps: FormDeps
 ) {
@@ -111,12 +111,18 @@ export async function updateFormSchema(
   }
 
   // 3. Update form + create schema version in DB
+  const submissionIdentityMode =
+    params.submissionIdentityMode ??
+    form.submissionIdentityMode;
+
   await deps.db.update(forms).set({
     walrusBlobId: newBlobId,
     schemaVersion: newVersion,
     title: params.schema.title,
     description: params.schema.description ?? null,
     denormalizedSchema: params.schema as unknown as Record<string, unknown>,
+    ...(params.isPrivate !== undefined ? { isPrivate: params.isPrivate } : {}),
+    submissionIdentityMode: submissionIdentityMode as 'anonymous' | 'optional_connected' | 'required_connected',
   }).where(eq(forms.id, formId));
 
   await deps.db.insert(schemaVersions).values({
@@ -128,7 +134,16 @@ export async function updateFormSchema(
   });
 
   logger.info({ formId, version: newVersion, blobId: newBlobId }, '[Forms] Schema updated');
-  return { ...form, walrusBlobId: newBlobId, schemaVersion: newVersion };
+  return {
+    ...form,
+    walrusBlobId: newBlobId,
+    schemaVersion: newVersion,
+    title: params.schema.title,
+    description: params.schema.description ?? null,
+    denormalizedSchema: params.schema as unknown as Record<string, unknown>,
+    isPrivate: params.isPrivate ?? form.isPrivate,
+    submissionIdentityMode: submissionIdentityMode as 'anonymous' | 'optional_connected' | 'required_connected',
+  };
 }
 
 export async function listForms(

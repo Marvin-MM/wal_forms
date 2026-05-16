@@ -31,7 +31,11 @@ export function BuilderToolbar({ formId, onAIClick }: BuilderToolbarProps) {
     setPublishing(true);
     try {
       const result = activeFormId
-        ? await updateForm(activeFormId, { schema })
+        ? await updateForm(activeFormId, {
+            schema,
+            isPrivate: settings.isPrivate,
+            submissionIdentityMode: schema.settings?.submissionIdentityMode || settings.submissionIdentityMode,
+          })
         : await createForm({ 
             schema, 
             isPrivate: settings.isPrivate,

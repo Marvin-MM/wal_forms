@@ -2,16 +2,15 @@ import { apiRequest } from "./client";
 import type { NotificationPreferences } from "../../shared/types/entities";
 
 export type UpsertNotificationPrefsInput = Partial<
-  Omit<NotificationPreferences, "id" | "formId" | "walletAddress" | "createdAt" | "updatedAt">
+  Omit<NotificationPreferences, "id" | "formId" | "createdAt" | "updatedAt">
 >;
 
 export async function getNotificationPrefs(
-  formId: string,
-  walletAddress: string
+  formId: string
 ): Promise<NotificationPreferences | null> {
   try {
     return await apiRequest<NotificationPreferences>(
-      `/forms/${formId}/notifications/preferences/${encodeURIComponent(walletAddress)}`
+      `/forms/${formId}/notifications/preferences`
     );
   } catch {
     return null;
@@ -20,11 +19,10 @@ export async function getNotificationPrefs(
 
 export async function upsertNotificationPrefs(
   formId: string,
-  walletAddress: string,
   input: UpsertNotificationPrefsInput
 ): Promise<NotificationPreferences> {
   return apiRequest<NotificationPreferences>(
-    `/forms/${formId}/notifications/preferences/${encodeURIComponent(walletAddress)}`,
+    `/forms/${formId}/notifications/preferences`,
     { method: "PUT", body: input }
   );
 }

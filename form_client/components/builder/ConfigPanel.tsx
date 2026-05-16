@@ -10,6 +10,12 @@ import type { FormField } from "../../shared/schemas/form-schema";
 
 type Tab = "field" | "branding" | "access";
 
+const IDENTITY_OPTIONS = [
+  { value: "anonymous", label: "Anonymous", description: "No wallet" },
+  { value: "optional_connected", label: "Optional", description: "Wallet optional" },
+  { value: "required_connected", label: "Required", description: "Wallet required" },
+] as const;
+
 interface ConfigPanelProps {
   formId?: string;
 }
@@ -105,7 +111,7 @@ function FieldConfigContent({ field, updateField }: FieldConfigContentProps) {
   }
 
   function removeOption(index: number) {
-    updateField(f.id, { options: f.options?.filter((_: any, i: number) => i !== index) });
+    updateField(f.id, { options: f.options?.filter((_, i) => i !== index) });
   }
 
   return (
@@ -217,19 +223,35 @@ function FieldConfigContent({ field, updateField }: FieldConfigContentProps) {
       )}
 
       {hasFileConfig && (
-        <Input
-          label="Allowed types (comma-separated)"
-          placeholder="image/*, video/mp4"
-          value={f.validation?.allowedFileTypes?.join(", ") ?? ""}
-          onChange={(e) =>
-            updateValidation({
-              allowedFileTypes: e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            })
-          }
-        />
+        <div className="space-y-3">
+          <Input
+            label="Allowed types (comma-separated)"
+            placeholder="image/*, video/mp4"
+            value={f.validation?.allowedFileTypes?.join(", ") ?? ""}
+            onChange={(e) =>
+              updateValidation({
+                allowedFileTypes: e.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
+          <Input
+            label="Max file size (MB)"
+            type="number"
+            min={1}
+            max={100}
+            value={f.validation?.maxFileSize ? Math.round(f.validation.maxFileSize / 1024 / 1024) : ""}
+            onChange={(e) =>
+              updateValidation({
+                maxFileSize: e.target.value
+                  ? Math.min(100, Math.max(1, Number(e.target.value))) * 1024 * 1024
+                  : undefined,
+              })
+            }
+          />
+        </div>
       )}
     </div>
   );
@@ -270,15 +292,29 @@ function FormSettingsContent() {
             Determine if users need to connect their Sui wallet to submit. 
             <strong> Required Connected</strong> enables Gas Sponsorship for submitters.
           </p>
-          <select
-            value={settings.submissionIdentityMode}
-            onChange={(e) => updateSettings({ submissionIdentityMode: e.target.value as any })}
-            className="w-full h-9 rounded-lg border px-3 text-sm bg-[var(--bg-elevated)] text-[var(--text-primary)] border-[var(--border-default)] focus:border-[var(--color-brand-500)] focus:outline-none"
-          >
-            <option value="anonymous">Anonymous (No Wallet Required)</option>
-            <option value="optional_connected">Optional Connection</option>
-            <option value="required_connected">Required Connected</option>
-          </select>
+          <div className="grid gap-2">
+            {IDENTITY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => updateSettings({ submissionIdentityMode: option.value })}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-left transition-colors",
+                  settings.submissionIdentityMode === option.value
+                    ? "border-[var(--color-brand-500)] bg-[var(--color-brand-500)]/10"
+                    : "border-[var(--border-default)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-subtle)]"
+                )}
+                aria-pressed={settings.submissionIdentityMode === option.value}
+              >
+                <span className="block text-xs font-semibold text-[var(--text-primary)]">
+                  {option.label}
+                </span>
+                <span className="block text-[11px] text-[var(--text-tertiary)]">
+                  {option.description}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -11,6 +11,8 @@ export interface CreateFormInput {
 
 export interface UpdateFormInput {
   schema: FormSchemaType;
+  isPrivate?: boolean;
+  submissionIdentityMode?: "anonymous" | "optional_connected" | "required_connected";
 }
 
 export interface ListFormsQuery {
