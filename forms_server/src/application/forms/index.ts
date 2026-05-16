@@ -1,0 +1,180 @@
+/**
+ * Form use cases: create, get, update schema, list, soft-delete.
+ */
+import { eq, and, desc, count } from 'drizzle-orm';
+import type { Database } from '../../infrastructure/db/client.js';
+import type { WalrusClient } from '../../infrastructure/walrus/client.js';
+import type { SuiBlockchainClient } from '../../infrastructure/sui/client.js';
+import { forms, schemaVersions } from '../../infrastructure/db/schema.js';
+import type { FormSchemaType } from '../../domain/schemas/form-schema.js';
+import { NotFoundError, AuthorizationError } from '../../shared/errors/index.js';
+import { logger } from '../../shared/logger.js';
+
+export interface FormDeps {
+  db: Database;
+  walrus: WalrusClient;
+  sui: SuiBlockchainClient;
+}
+
+export async function createForm(
+  params: { schema: FormSchemaType; isPrivate: boolean; submissionIdentityMode: string },
+  wallet: string,
+  deps: FormDeps
+) {
+  // 1. Publish schema to Walrus
+  const schemaJson = JSON.stringify(params.schema);
+  const { blobId } = await deps.walrus.publishBlob(schemaJson);
+
+  // 2. Register on Sui (async-safe — if it fails, we still have the DB record)
+  let suiObjectId: string | null = null;
+  try {
+    const result = await deps.sui.registerForm({
+      schemaBlobId: blobId,
+      isPrivate: params.isPrivate,
+      submissionIdentityMode: params.submissionIdentityMode === 'anonymous' ? 0 : params.submissionIdentityMode === 'optional_connected' ? 1 : 2,
+    });
+    suiObjectId = result.suiObjectId;
+  } catch (error) {
+    logger.warn({ error }, '[Forms] Sui registration failed, continuing without on-chain record');
+  }
+
+  // 3. Write to database
+  const [form] = await deps.db.insert(forms).values({
+    ownerWallet: wallet,
+    walrusBlobId: blobId,
+    schemaVersion: 1,
+    suiObjectId,
+    isPrivate: params.isPrivate,
+    submissionIdentityMode: params.submissionIdentityMode as 'anonymous' | 'optional_connected' | 'required_connected',
+    title: params.schema.title,
+    description: params.schema.description ?? null,
+    denormalizedSchema: params.schema as unknown as Record<string, unknown>,
+  }).returning();
+
+  // 4. Write first schema version
+  await deps.db.insert(schemaVersions).values({
+    formId: form!.id,
+    blobId,
+    versionNumber: 1,
+    parentBlobId: null,
+    suiObjectId: null,
+  });
+
+  logger.info({ formId: form!.id, blobId }, '[Forms] Form created');
+  return form;
+}
+
+export async function getForm(formId: string, deps: Pick<FormDeps, 'db'>) {
+  const [form] = await deps.db
+    .select()
+    .from(forms)
+    .where(and(eq(forms.id, formId), eq(forms.isDeleted, false)));
+
+  if (!form) {
+    throw new NotFoundError('Form', formId);
+  }
+
+  return form;
+}
+
+export async function updateFormSchema(
+  formId: string,
+  params: { schema: FormSchemaType },
+  wallet: string,
+  deps: FormDeps
+) {
+  const form = await getForm(formId, deps);
+
+  if (form.ownerWallet !== wallet) {
+    throw new AuthorizationError('Only the form owner can update the schema');
+  }
+
+  // 1. Publish new schema to Walrus
+  const schemaJson = JSON.stringify(params.schema);
+  const { blobId: newBlobId } = await deps.walrus.publishBlob(schemaJson);
+  const newVersion = form.schemaVersion + 1;
+  const parentBlobId = form.walrusBlobId;
+
+  // 2. Register schema version on Sui
+  let suiObjectId: string | null = null;
+  try {
+    const result = await deps.sui.registerSchemaVersion({
+      formObjectId: form.suiObjectId ?? '',
+      ownerCapObjectId: '0x0', // owner cap held in frontend wallet
+      newBlobId,
+      parentBlobId,
+      versionNumber: newVersion,
+    });
+    suiObjectId = result.suiObjectId;
+  } catch (error) {
+    logger.warn({ error }, '[Forms] Sui schema version registration failed');
+  }
+
+  // 3. Update form + create schema version in DB
+  await deps.db.update(forms).set({
+    walrusBlobId: newBlobId,
+    schemaVersion: newVersion,
+    title: params.schema.title,
+    description: params.schema.description ?? null,
+    denormalizedSchema: params.schema as unknown as Record<string, unknown>,
+  }).where(eq(forms.id, formId));
+
+  await deps.db.insert(schemaVersions).values({
+    formId,
+    blobId: newBlobId,
+    versionNumber: newVersion,
+    parentBlobId,
+    suiObjectId,
+  });
+
+  logger.info({ formId, version: newVersion, blobId: newBlobId }, '[Forms] Schema updated');
+  return { ...form, walrusBlobId: newBlobId, schemaVersion: newVersion };
+}
+
+export async function listForms(
+  wallet: string,
+  page: number,
+  pageSize: number,
+  deps: Pick<FormDeps, 'db'>
+) {
+  const offset = (page - 1) * pageSize;
+
+  const [items, [totalResult]] = await Promise.all([
+    deps.db
+      .select()
+      .from(forms)
+      .where(and(eq(forms.ownerWallet, wallet), eq(forms.isDeleted, false)))
+      .orderBy(desc(forms.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    deps.db
+      .select({ count: count() })
+      .from(forms)
+      .where(and(eq(forms.ownerWallet, wallet), eq(forms.isDeleted, false))),
+  ]);
+
+  const total = totalResult?.count ?? 0;
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function deleteForm(
+  formId: string,
+  wallet: string,
+  deps: Pick<FormDeps, 'db'>
+) {
+  const form = await getForm(formId, deps);
+
+  if (form.ownerWallet !== wallet) {
+    throw new AuthorizationError('Only the form owner can delete the form');
+  }
+
+  await deps.db.update(forms).set({ isDeleted: true }).where(eq(forms.id, formId));
+  logger.info({ formId }, '[Forms] Form soft-deleted');
+}
