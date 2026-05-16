@@ -153,6 +153,7 @@ export function HeroSection() {
             </Button>
           </Link>
         </motion.div>
+        
 
         <motion.div variants={itemVariants} className="relative mt-7 h-[310px] w-full overflow-hidden sm:h-[340px] lg:h-[370px]">
           <div
