@@ -147,14 +147,6 @@ const envSchema = z.object({
       });
     }
 
-    if (!env.INNGEST_EVENT_KEY) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['INNGEST_EVENT_KEY'],
-        message: 'INNGEST_EVENT_KEY is required when using Inngest Cloud',
-      });
-    }
-
     if (env.INNGEST_SERVE_ORIGIN && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/.test(env.INNGEST_SERVE_ORIGIN)) {
       ctx.addIssue({
         code: 'custom',
