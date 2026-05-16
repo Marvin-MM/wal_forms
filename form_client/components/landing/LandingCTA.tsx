@@ -13,7 +13,7 @@ export function LandingCTA() {
   const { mutate: connectWallet, isPending } = useConnectWallet();
 
   return (
-    <section className="relative py-32 px-4 sm:px-6 overflow-hidden" aria-labelledby="cta-heading">
+    <section className="relative overflow-hidden px-4 py-32 transition-colors sm:px-6" aria-labelledby="cta-heading">
       {/* Background glow for CTA */}
       <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
         <div className="h-[500px] w-[500px] rounded-full bg-[var(--color-brand-600)]/20 blur-[120px]" />
@@ -30,7 +30,7 @@ export function LandingCTA() {
           {/* Animated border gradient */}
           <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-brand-400)] via-[var(--color-brand-600)] to-[var(--color-brand-400)] animate-spin opacity-50" style={{ animationDuration: '8s' }} />
           
-          <div className="relative rounded-3xl bg-[var(--bg-elevated)]/90 backdrop-blur-xl px-8 py-16 shadow-2xl">
+          <div className="relative rounded-3xl border border-[var(--border-default)] bg-[var(--bg-elevated)]/90 px-8 py-16 shadow-2xl backdrop-blur-xl">
             <h2 id="cta-heading" className="mb-6 text-3xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-5xl">
               Start building verifiable forms
             </h2>
