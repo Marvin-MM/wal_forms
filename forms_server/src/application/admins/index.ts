@@ -20,11 +20,20 @@ export interface AdminDeps {
   seal: SealClient;
 }
 
-async function verifyOwner(formId: string, wallet: string, db: Database) {
+async function verifyOwnerOrAdmin(formId: string, wallet: string, db: Database) {
   const [form] = await db.select().from(forms).where(eq(forms.id, formId));
   if (!form) throw new NotFoundError('Form', formId);
+
   if (form.ownerWallet !== wallet) {
-    throw new AuthorizationError('Only the form owner can manage admins');
+    const isAdmin = await db
+      .select({ id: admins.id })
+      .from(admins)
+      .where(and(eq(admins.formId, formId), eq(admins.walletAddress, wallet)))
+      .limit(1);
+
+    if (isAdmin.length === 0) {
+      throw new AuthorizationError('Only the form owner or an admin can manage admins');
+    }
   }
   return form;
 }
@@ -35,7 +44,7 @@ export async function addAdmin(
   ownerWallet: string,
   deps: AdminDeps
 ) {
-  await verifyOwner(formId, ownerWallet, deps.db);
+  await verifyOwnerOrAdmin(formId, ownerWallet, deps.db);
 
   // Check if already an admin
   const [existing] = await deps.db
@@ -64,7 +73,7 @@ export async function removeAdmin(
   ownerWallet: string,
   deps: AdminDeps
 ) {
-  await verifyOwner(formId, ownerWallet, deps.db);
+  await verifyOwnerOrAdmin(formId, ownerWallet, deps.db);
 
   const result = await deps.db
     .delete(admins)
@@ -83,7 +92,7 @@ export async function listAdmins(
   ownerWallet: string,
   deps: Pick<AdminDeps, 'db'>
 ) {
-  await verifyOwner(formId, ownerWallet, deps.db);
+  await verifyOwnerOrAdmin(formId, ownerWallet, deps.db);
 
   return deps.db
     .select()

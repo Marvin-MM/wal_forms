@@ -8,7 +8,9 @@ import type { JwtService } from '../../infrastructure/auth/jwt.js';
 import { successResponse } from '../middleware/error-handler.js';
 import { AuthenticationError } from '../../shared/errors/index.js';
 
-export function createAuthRoutes(jwtService: JwtService) {
+import type { SuiBlockchainClient } from '../../infrastructure/sui/client.js';
+
+export function createAuthRoutes(jwtService: JwtService, sui: SuiBlockchainClient) {
   return new Elysia({ prefix: '/auth' })
     .post('/nonce', async ({ body }) => {
       const parsed = RequestNonceSchema.parse(body);
@@ -17,7 +19,7 @@ export function createAuthRoutes(jwtService: JwtService) {
     })
     .post('/verify', async ({ body, cookie }) => {
       const parsed = VerifySiWSSchema.parse(body);
-      const result = await verifySiWS(parsed, jwtService);
+      const result = await verifySiWS(parsed, jwtService, sui.getSuiClient());
 
       // Set refresh token as httpOnly cookie
       cookie['refresh_token']?.set({

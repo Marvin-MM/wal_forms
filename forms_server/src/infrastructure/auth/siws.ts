@@ -42,11 +42,12 @@ export function consumeNonce(walletAddress: string, nonce: string): boolean {
 export async function verifySiWSSignature(
   message: string,
   signature: string,
-  expectedWallet: string
+  expectedWallet: string,
+  client?: any
 ): Promise<boolean> {
   try {
     const messageBytes = new TextEncoder().encode(message);
-    const publicKey = await verifyPersonalMessageSignature(messageBytes, signature);
+    const publicKey = await verifyPersonalMessageSignature(messageBytes, signature, { client });
     const derivedAddress = publicKey.toSuiAddress();
     const isValid = derivedAddress === expectedWallet;
     if (!isValid) {

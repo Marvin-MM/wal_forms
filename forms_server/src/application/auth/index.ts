@@ -12,7 +12,8 @@ export async function requestNonce(walletAddress: string): Promise<{ nonce: stri
 
 export async function verifySiWS(
   params: { walletAddress: string; signedMessage: string; signature: string; nonce: string },
-  jwtService: JwtService
+  jwtService: JwtService,
+  suiClient?: any
 ): Promise<{ accessToken: string; refreshToken: string }> {
   // Verify nonce
   const nonceValid = consumeNonce(params.walletAddress, params.nonce);
@@ -24,7 +25,8 @@ export async function verifySiWS(
   const isValid = await verifySiWSSignature(
     params.signedMessage,
     params.signature,
-    params.walletAddress
+    params.walletAddress,
+    suiClient
   );
   if (!isValid) {
     throw new AuthenticationError('Signature verification failed');

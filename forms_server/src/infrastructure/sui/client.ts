@@ -411,6 +411,10 @@ export class SuiBlockchainClient {
     return this.keypair?.getPublicKey().toSuiAddress() ?? null;
   }
 
+  getSuiClient(): SuiJsonRpcClient {
+    return this.client;
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // Private helpers
   // ───────────────────────────────────────────────────────────────────────────

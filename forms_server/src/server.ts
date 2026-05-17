@@ -80,7 +80,7 @@ export function createServer(deps: ServerDeps) {
       return inngestHandler(request);
     })
     // Route groups
-    .use(createAuthRoutes(jwt))
+    .use(createAuthRoutes(jwt, sui))
     .use(createFormsRoutes(jwt, { db, walrus, sui }))
     .use(createSubmissionsRoutes(jwt, { db, walrus, sui, turnstileSecret: env.CLOUDFLARE_TURNSTILE_SECRET_KEY }, env.RATE_LIMIT_SUBMISSION, getServer))
     .use(createAdminsRoutes(jwt, { db, seal }))

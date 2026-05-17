@@ -1,11 +1,11 @@
 /**
  * Form use cases: create, get, update schema, list, soft-delete.
  */
-import { eq, and, desc, count } from 'drizzle-orm';
+import { eq, and, desc, count, or, inArray } from 'drizzle-orm';
 import type { Database } from '../../infrastructure/db/client.js';
 import type { WalrusClient } from '../../infrastructure/walrus/client.js';
 import type { SuiBlockchainClient } from '../../infrastructure/sui/client.js';
-import { forms, schemaVersions } from '../../infrastructure/db/schema.js';
+import { forms, schemaVersions, admins } from '../../infrastructure/db/schema.js';
 import type { FormSchemaType } from '../../domain/schemas/form-schema.js';
 import { NotFoundError, AuthorizationError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
@@ -77,6 +77,20 @@ export async function getForm(formId: string, deps: Pick<FormDeps, 'db'>) {
   return form;
 }
 
+export async function verifyOwnerOrAdmin(form: typeof forms.$inferSelect, wallet: string, db: Database) {
+  if (form.ownerWallet === wallet) return;
+
+  const [admin] = await db
+    .select({ id: admins.id })
+    .from(admins)
+    .where(and(eq(admins.formId, form.id), eq(admins.walletAddress, wallet)))
+    .limit(1);
+
+  if (!admin) {
+    throw new AuthorizationError('Only the form owner or an admin can perform this action');
+  }
+}
+
 export async function updateFormSchema(
   formId: string,
   params: { schema: FormSchemaType; isPrivate?: boolean; submissionIdentityMode?: string },
@@ -84,10 +98,7 @@ export async function updateFormSchema(
   deps: FormDeps
 ) {
   const form = await getForm(formId, deps);
-
-  if (form.ownerWallet !== wallet) {
-    throw new AuthorizationError('Only the form owner can update the schema');
-  }
+  await verifyOwnerOrAdmin(form, wallet, deps.db);
 
   // 1. Publish new schema to Walrus
   const schemaJson = JSON.stringify(params.schema);
@@ -154,18 +165,29 @@ export async function listForms(
 ) {
   const offset = (page - 1) * pageSize;
 
+  const whereClause = and(
+    eq(forms.isDeleted, false),
+    or(
+      eq(forms.ownerWallet, wallet),
+      inArray(
+        forms.id,
+        deps.db.select({ formId: admins.formId }).from(admins).where(eq(admins.walletAddress, wallet))
+      )
+    )
+  );
+
   const [items, [totalResult]] = await Promise.all([
     deps.db
       .select()
       .from(forms)
-      .where(and(eq(forms.ownerWallet, wallet), eq(forms.isDeleted, false)))
+      .where(whereClause)
       .orderBy(desc(forms.createdAt))
       .limit(pageSize)
       .offset(offset),
     deps.db
       .select({ count: count() })
       .from(forms)
-      .where(and(eq(forms.ownerWallet, wallet), eq(forms.isDeleted, false))),
+      .where(whereClause),
   ]);
 
   const total = totalResult?.count ?? 0;

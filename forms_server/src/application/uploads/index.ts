@@ -5,8 +5,9 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../../infrastructure/db/client.js';
 import type { WalrusClient } from '../../infrastructure/walrus/client.js';
 import { uploadSessions, forms } from '../../infrastructure/db/schema.js';
-import { NotFoundError, ValidationError, AuthorizationError } from '../../shared/errors/index.js';
+import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
+import { verifyOwnerOrAdmin } from '../forms/index.js';
 import {
   BRANDING_LOGO_MAX_SIZE_BYTES,
   BRANDING_LOGO_MIME_TYPES,
@@ -49,9 +50,7 @@ export async function createUploadSession(
   let maxFileSize = params.maxFileSize;
 
   if (uploadPurpose === 'branding_logo') {
-    if (form.ownerWallet !== wallet) {
-      throw new AuthorizationError('Only the form owner can upload branding assets');
-    }
+    await verifyOwnerOrAdmin(form, wallet, deps.db);
 
     if (params.maxFileSize > BRANDING_LOGO_MAX_SIZE_BYTES) {
       throw new ValidationError(`Branding logos must be ${BRANDING_LOGO_MAX_SIZE_BYTES} bytes or smaller`);

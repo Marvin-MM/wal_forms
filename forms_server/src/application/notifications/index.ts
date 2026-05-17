@@ -5,8 +5,9 @@
 import { eq } from 'drizzle-orm';
 import type { Database } from '../../infrastructure/db/client.js';
 import { forms, notificationPreferences } from '../../infrastructure/db/schema.js';
-import { NotFoundError, AuthorizationError } from '../../shared/errors/index.js';
+import { NotFoundError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
+import { verifyOwnerOrAdmin } from '../forms/index.js';
 import { UpsertNotificationPreferenceBodySchema, type UpsertNotificationPreferenceBody } from '../../domain/entities/notification-preference.js';
 
 export interface NotificationDeps {
@@ -19,11 +20,9 @@ export async function getNotificationPreferences(
   deps: NotificationDeps
 ) {
   // 1. Verify ownership
-  const [form] = await deps.db.select({ ownerWallet: forms.ownerWallet }).from(forms).where(eq(forms.id, formId));
+  const [form] = await deps.db.select().from(forms).where(eq(forms.id, formId));
   if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== walletAddress) {
-    throw new AuthorizationError('Only the form owner can manage notification preferences');
-  }
+  await verifyOwnerOrAdmin(form, walletAddress, deps.db);
 
   // 2. Fetch preferences
   const [prefs] = await deps.db.select().from(notificationPreferences).where(eq(notificationPreferences.formId, formId));
@@ -37,11 +36,9 @@ export async function upsertNotificationPreferences(
   deps: NotificationDeps
 ) {
   // 1. Verify ownership
-  const [form] = await deps.db.select({ ownerWallet: forms.ownerWallet }).from(forms).where(eq(forms.id, formId));
+  const [form] = await deps.db.select().from(forms).where(eq(forms.id, formId));
   if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== walletAddress) {
-    throw new AuthorizationError('Only the form owner can manage notification preferences');
-  }
+  await verifyOwnerOrAdmin(form, walletAddress, deps.db);
 
   // 2. Validate
   const validated = UpsertNotificationPreferenceBodySchema.parse(data);

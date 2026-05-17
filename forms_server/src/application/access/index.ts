@@ -23,11 +23,12 @@ import {
 } from '../../infrastructure/db/schema.js';
 import {
   NotFoundError,
-  AuthorizationError,
+  
   ConflictError,
   AccessDeniedError,
 } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
+import { verifyOwnerOrAdmin } from '../forms/index.js';
 import type {
   FormAccessPolicyInput,
   AccessDecision,
@@ -212,8 +213,7 @@ export async function upsertAccessPolicy(
 ): Promise<{ id: string; suiObjectId: string | null }> {
   // Verify ownership
   const [form] = await deps.db.select().from(forms).where(eq(forms.id, formId));
-  if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) throw new AuthorizationError('Only the form owner can manage access policies');
+  await verifyOwnerOrAdmin(form, ownerWallet, deps.db);
 
   const [existingPolicy] = await deps.db
     .select()
@@ -292,8 +292,7 @@ export async function addAllowlistEntry(
   deps: AccessDeps
 ): Promise<SafeAllowlistEntry> {
   const [form] = await deps.db.select().from(forms).where(eq(forms.id, formId));
-  if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) throw new AuthorizationError('Only the form owner can manage the allowlist');
+  await verifyOwnerOrAdmin(form, ownerWallet, deps.db);
 
   const normalized = targetAddress.toLowerCase();
 
@@ -336,8 +335,7 @@ export async function removeAllowlistEntry(
   deps: AccessDeps
 ): Promise<void> {
   const [form] = await deps.db.select().from(forms).where(eq(forms.id, formId));
-  if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) throw new AuthorizationError('Only the form owner can manage the allowlist');
+  await verifyOwnerOrAdmin(form, ownerWallet, deps.db);
 
   const normalized = targetAddress.toLowerCase();
 
@@ -372,8 +370,7 @@ export async function getAccessPolicy(
   db: Database
 ): Promise<SafeAccessPolicy | null> {
   const [form] = await db.select().from(forms).where(eq(forms.id, formId));
-  if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) throw new AuthorizationError('Only the form owner can view access policies');
+  await verifyOwnerOrAdmin(form, ownerWallet, db);
 
   const [policy] = await db.select().from(formAccessPolicies).where(eq(formAccessPolicies.formId, formId));
   return policy ? toSafePolicy(policy, db) : null;
@@ -423,8 +420,7 @@ export async function listAllowlist(
   db: Database
 ): Promise<{ items: SafeAllowlistEntry[]; total: number; page: number; pageSize: number; totalPages: number }> {
   const [form] = await db.select().from(forms).where(eq(forms.id, formId));
-  if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) throw new AuthorizationError('Only the form owner can view the allowlist');
+  await verifyOwnerOrAdmin(form, ownerWallet, db);
 
   const offset = (page - 1) * pageSize;
   const [entries, [totalResult]] = await Promise.all([

@@ -10,8 +10,9 @@ import type { Database } from '../../infrastructure/db/client.js';
 import type { WalrusClient } from '../../infrastructure/walrus/client.js';
 import type { SuiBlockchainClient } from '../../infrastructure/sui/client.js';
 import { forms, formBranding } from '../../infrastructure/db/schema.js';
-import { NotFoundError, AuthorizationError, ValidationError } from '../../shared/errors/index.js';
+import { NotFoundError,  ValidationError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
+import { verifyOwnerOrAdmin } from '../forms/index.js';
 import {
   UpsertFormBrandingBodySchema,
   type UpsertFormBrandingBody,
@@ -62,9 +63,7 @@ export async function upsertFormBranding(
     .from(forms)
     .where(eq(forms.id, formId));
   if (!form) throw new NotFoundError('Form', formId);
-  if (form.ownerWallet !== ownerWallet) {
-    throw new AuthorizationError('Only the form owner can update branding');
-  }
+  await verifyOwnerOrAdmin(form, ownerWallet, deps.db);
 
   // 2. Validate Zod (should already be validated at route level, but enforce here)
   const validated = UpsertFormBrandingBodySchema.parse(data);
