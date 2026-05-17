@@ -1,5 +1,6 @@
 "use client";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 
 const steps = [
   {
@@ -25,48 +26,60 @@ const steps = [
 ];
 
 export function HowItWorks() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start center", "end center"],
+  });
+
   return (
-    <section id="how-it-works" className="py-20 px-4 sm:px-6" aria-labelledby="how-heading">
+    <section id="how-it-works" className="py-24 px-4 sm:px-6 bg-[var(--bg-base)]" aria-labelledby="how-heading">
       <div className="mx-auto max-w-6xl">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center"
+          className="mb-20 text-center"
         >
-          <h2 id="how-heading" className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-4xl">
+          <h2 id="how-heading" className="text-4xl font-black tracking-tight text-[var(--text-primary)] sm:text-5xl">
             How it works
           </h2>
-          <p className="mt-4 text-lg text-[var(--text-secondary)]">Four steps from idea to cryptographically verifiable form.</p>
+          <p className="mt-6 text-lg text-[var(--text-secondary)]">Four steps from idea to cryptographically verifiable form.</p>
         </motion.div>
 
-        <div className="relative mx-auto max-w-4xl">
+        <div ref={containerRef} className="relative mx-auto max-w-5xl">
           {/* Vertical line connecting timeline nodes */}
-          <div className="absolute left-[27px] top-8 bottom-8 w-1 bg-gradient-to-b from-[var(--color-brand-500)]/50 via-[var(--color-brand-500)]/20 to-transparent md:left-1/2 md:-ml-[2px]" />
+          <div className="absolute left-[27px] top-6 bottom-6 w-1 rounded-full bg-[var(--border-default)] md:left-1/2 md:-ml-[2px] overflow-hidden">
+            <motion.div 
+              className="w-full h-full bg-gradient-to-b from-[var(--color-brand-400)] to-[var(--color-brand-600)] shadow-[0_0_10px_var(--color-brand-500)] origin-top"
+              style={{ scaleY: scrollYProgress }}
+            />
+          </div>
 
-          <div className="space-y-12">
+          <div className="space-y-16">
           {steps.map(({ step, title, description }, index) => (
             <motion.div 
               key={step} 
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
+              viewport={{ once: true, margin: "-150px" }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className={`relative flex flex-col md:flex-row items-start ${index % 2 === 0 ? "md:flex-row-reverse" : ""}`}
+              className={`relative flex flex-col md:flex-row items-center ${index % 2 === 0 ? "md:flex-row-reverse" : ""}`}
             >
               {/* Timeline node */}
-              <div className="absolute left-0 flex h-14 w-14 items-center justify-center rounded-full border-4 border-[var(--bg-base)] bg-gradient-to-br from-[var(--color-brand-400)] to-[var(--color-brand-600)] text-white shadow-lg md:left-1/2 md:-ml-7 z-10">
-                <span className="font-bold tracking-wider">{step}</span>
+              <div className="absolute left-0 flex h-14 w-14 items-center justify-center rounded-full border-[6px] border-[var(--bg-base)] bg-[var(--color-brand-500)] text-white shadow-lg md:left-1/2 md:-ml-7 z-10 transition-transform hover:scale-110">
+                <span className="font-black tracking-widest text-sm">{step}</span>
               </div>
               
               {/* Content Card */}
-              <div className="ml-20 md:ml-0 md:w-1/2 md:px-12 w-full">
+              <div className={`ml-20 md:ml-0 md:w-1/2 w-full ${index % 2 === 0 ? "md:pl-16" : "md:pr-16"}`}>
                 <motion.div 
                   whileHover={{ y: -5, scale: 1.02 }}
-                  className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-8 shadow-sm transition-colors hover:border-[var(--color-brand-500)]/40 hover:shadow-xl"
+                  className="relative rounded-3xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-8 shadow-sm transition-all duration-300 hover:border-[var(--color-brand-500)] hover:shadow-xl hover:shadow-[var(--color-brand-500)]/10"
                 >
-                  <h3 className="mb-3 text-xl font-bold text-[var(--text-primary)]">{title}</h3>
+                  <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-[var(--color-brand-500)]/20 to-transparent opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none" />
+                  <h3 className="mb-4 text-2xl font-bold text-[var(--text-primary)] tracking-tight">{title}</h3>
                   <p className="text-[var(--text-secondary)] leading-relaxed text-base">{description}</p>
                 </motion.div>
               </div>

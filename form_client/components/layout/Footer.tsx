@@ -79,34 +79,30 @@ export function Footer() {
   const y = useTransform(scrollYProgress, [0, 1], [130, 0]);
 
   return (
-    <footer ref={footerRef} className="relative isolate overflow-hidden bg-[#f7f5ff] px-4 pt-24 text-slate-950 transition-colors duration-300 dark:bg-[#03050b] dark:text-white sm:px-6 lg:pt-28">
+    <footer ref={footerRef} className="relative isolate overflow-hidden bg-[var(--bg-subtle)] px-4 pt-24 text-[var(--text-primary)] transition-colors duration-300 sm:px-6 lg:pt-28">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_12%,rgba(45,212,191,0.18),transparent_24%),radial-gradient(circle_at_82%_20%,rgba(124,58,237,0.16),transparent_24%),linear-gradient(180deg,#fbfbff_0%,#f7f5ff_100%)] dark:bg-[radial-gradient(circle_at_18%_12%,rgba(45,212,191,0.16),transparent_24%),radial-gradient(circle_at_82%_20%,rgba(124,58,237,0.20),transparent_24%),linear-gradient(180deg,#05070f_0%,#03050b_100%)]"
+        className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_12%,var(--color-brand-400),transparent_24%),radial-gradient(circle_at_82%_20%,var(--color-brand-600),transparent_24%)] opacity-5 dark:opacity-10"
       />
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 -z-10 h-20 bg-gradient-to-r from-cyan-300/35 via-violet-400/30 to-emerald-300/30 [clip-path:polygon(0_0,100%_0,100%_42%,93%_82%,86%_42%,78%_100%,70%_40%,61%_78%,52%_34%,43%_92%,34%_38%,25%_82%,16%_40%,8%_98%,0_44%)] dark:from-cyan-300/20 dark:via-violet-400/20 dark:to-emerald-300/20"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 opacity-[0.18] [background-image:linear-gradient(rgba(79,70,229,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(79,70,229,0.16)_1px,transparent_1px)] [background-size:64px_64px] dark:opacity-[0.13] dark:[background-image:linear-gradient(rgba(255,255,255,0.24)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.24)_1px,transparent_1px)]"
+        className="absolute inset-x-0 top-0 -z-10 h-20 bg-gradient-to-r from-[var(--color-brand-300)] via-[var(--color-brand-500)] to-[var(--color-brand-400)] opacity-10 [clip-path:polygon(0_0,100%_0,100%_42%,93%_82%,86%_42%,78%_100%,70%_40%,61%_78%,52%_34%,43%_92%,34%_38%,25%_82%,16%_40%,8%_98%,0_44%)]"
       />
 
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div>
             <Link href="/" className="inline-flex items-center gap-3" aria-label="WalrusForms home">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-200 text-violet-700 shadow-[0_0_34px_rgba(124,58,237,0.18)] dark:bg-cyan-300 dark:text-slate-950 dark:shadow-[0_0_34px_rgba(103,232,249,0.28)]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-brand-600)] text-white shadow-[0_0_34px_var(--color-brand-300)]">
                 <Layers className="h-5 w-5" />
               </span>
-              <span className="text-xl font-black tracking-tight">WalForms</span>
+              <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">WalForms</span>
             </Link>
 
-            <h2 className="mt-8 max-w-2xl text-4xl text-white tracking-tight sm:text-5xl">
+            <h2 className="mt-8 max-w-2xl text-4xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-5xl">
               Make every form submission independently provable.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">
+            <p className="mt-5 max-w-xl text-base leading-7 text-[var(--text-secondary)]">
               Build the public interface your community can use and the cryptographic audit trail
               your organization can stand behind.
             </p>
@@ -114,14 +110,14 @@ export function Footer() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/builder"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-violet-700 dark:bg-white dark:text-slate-950 dark:hover:bg-cyan-200"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-brand-600)] px-6 text-sm font-bold text-white transition hover:bg-[var(--color-brand-700)]"
               >
                 Launch builder
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/verify/0x0"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white/70 px-6 text-sm font-bold text-slate-950 transition hover:border-violet-300 hover:bg-white dark:border-white/15 dark:bg-white/[0.05] dark:text-white dark:hover:border-cyan-200/50 dark:hover:bg-white/10"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] px-6 text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--bg-subtle)]"
               >
                 Verify a receipt
                 <Fingerprint className="h-4 w-4" />
@@ -129,16 +125,16 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="relative overflow-hidden bg-white/75 p-5 shadow-2xl shadow-violet-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.045] dark:shadow-black/30">
-            <div aria-hidden className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-300/20 blur-3xl" />
-            <div className="relative flex items-center justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/10">
+          <div className="relative overflow-hidden bg-[var(--bg-elevated)] p-5 shadow-2xl backdrop-blur-xl border border-[var(--border-subtle)] rounded-3xl">
+            <div aria-hidden className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[var(--color-brand-200)] opacity-30 blur-3xl" />
+            <div className="relative flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
               <div>
-                <p className="text-xs font-bold text-violet-700 dark:text-cyan-100/70">
+                <p className="text-xs font-bold text-[var(--color-brand-600)]">
                   Proof stack
                 </p>
-                <p className="mt-2 text-lg font-bold">Three layers, one signed record</p>
+                <p className="mt-2 text-lg font-bold text-[var(--text-primary)]">Three layers, one signed record</p>
               </div>
-              <ShieldCheck className="h-9 w-9 text-emerald-500 dark:text-emerald-200" />
+              <ShieldCheck className="h-9 w-9 text-[var(--color-success)]" />
             </div>
 
             <div className="relative mt-6 grid gap-3">
@@ -149,30 +145,30 @@ export function Footer() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: "-80px" }}
                   transition={{ duration: 0.45, delay: index * 0.08 }}
-                  className="flex items-center justify-between rounded  px-4 py-4 dark:border-white/10 dark:bg-slate-950/50"
+                  className="flex items-center justify-between rounded px-4 py-4 bg-[var(--bg-subtle)] border border-transparent"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-cyan-300/10 dark:text-cyan-100">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-elevated)] text-[var(--color-brand-600)] shadow-sm">
                       <Icon className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="font-bold text-slate-950 dark:text-white">{label}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{value}</p>
+                      <p className="font-bold text-[var(--text-primary)]">{label}</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{value}</p>
                     </div>
                   </div>
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:bg-emerald-300/10 dark:text-emerald-200">
+                  <span className="rounded-full bg-[var(--color-success-bg)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-success)]">
                     Active
                   </span>
                 </motion.div>
               ))}
             </div>
 
-            <div className="mt-5 rounded bg-violet-50/80 p-4 dark:border-cyan-200/15 dark:bg-cyan-200/[0.04]">
-              <div className="flex items-center gap-2 text-sm font-semibold text-violet-700 dark:text-cyan-100">
+            <div className="mt-5 rounded bg-[var(--color-brand-50)] p-4 border border-[var(--color-brand-100)] dark:border-[var(--color-brand-900)] dark:bg-[var(--color-brand-900)]/30">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-brand-700)] dark:text-[var(--color-brand-300)]">
                 <Sparkles className="h-4 w-4" />
                 AI-assisted schema generation
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
                 Prompt a form, tune the fields, publish the schema, and keep the verification path
                 intact from the first response.
               </p>
@@ -180,16 +176,16 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-20 grid gap-10 border-t border-slate-200 pt-10 dark:border-white/10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-20 grid gap-10 border-t border-[var(--border-default)] pt-10 md:grid-cols-2 lg:grid-cols-4">
           {linkGroups.map((group) => (
             <div key={group.title}>
-              <h3 className="text-xs font-bold uppercase tracking-[0.28em] text-violet-700 dark:text-cyan-100/70">{group.title}</h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.28em] text-[var(--color-brand-600)]">{group.title}</h3>
               <div className="mt-5 flex flex-col gap-3">
                 {group.links.map((link) => (
                   <Link
                     key={link.label}
                     href={link.href}
-                    className="group inline-flex w-max items-center gap-1.5 text-sm text-slate-600 transition hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                    className="group inline-flex w-max items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
                   >
                     {link.label}
                     {link.href === "#" && (
@@ -202,25 +198,25 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col gap-5 border-t border-slate-200 py-7 text-sm text-slate-500 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-5 border-t border-[var(--border-default)] py-7 text-sm text-[var(--text-secondary)] sm:flex-row sm:items-center sm:justify-between">
           <p>© {currentYear} WalForms. Verifiable forms for the decentralized web.</p>
-          <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
-            <a href="#" className="transition hover:text-slate-950 dark:hover:text-white" aria-label="Discord">
+          <div className="flex items-center gap-4">
+            <a href="#" className="transition hover:text-[var(--text-primary)]" aria-label="Discord">
               <SocialIcon path={ICONS.discord} />
             </a>
-            <a href="#" className="transition hover:text-slate-950 dark:hover:text-white" aria-label="GitHub">
+            <a href="#" className="transition hover:text-[var(--text-primary)]" aria-label="GitHub">
               <SocialIcon path={ICONS.github} />
             </a>
-            <a href="#" className="transition hover:text-slate-950 dark:hover:text-white" aria-label="X">
+            <a href="#" className="transition hover:text-[var(--text-primary)]" aria-label="X">
               <SocialIcon path={ICONS.x} />
             </a>
           </div>
         </div>
 
-        <div className="pointer-events-none select-none overflow-hidden">
+        <div className="pointer-events-none select-none overflow-hidden pb-4">
           <motion.p
             style={{ y }}
-            className="text-center text-[12vw] font-black leading-[0.72] tracking-tight text-slate-950/[0.06] dark:text-white/[0.08]"
+            className="text-center text-[13vw] font-black leading-[0.72] tracking-tight text-[var(--text-primary)] opacity-10"
           >
             WALFORMS
           </motion.p>

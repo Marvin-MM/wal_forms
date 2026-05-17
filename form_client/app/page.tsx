@@ -30,10 +30,13 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-[var(--bg-base)] overflow-x-hidden">
       <Header />
       <main>
-        <HeroSection />
-        <Suspense fallback={<div className="h-20" />}>
-          <StatsBarWrapper statsPromise={statsPromise} />
-        </Suspense>
+        <HeroSection 
+          statsBadge={
+            <Suspense fallback={<div className="h-8" />}>
+              <StatsBarWrapper statsPromise={statsPromise} />
+            </Suspense>
+          }
+        />
         <FeatureGrid />
         <HowItWorks />
         <LandingCTA />

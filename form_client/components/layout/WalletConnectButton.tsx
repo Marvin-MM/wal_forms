@@ -58,7 +58,7 @@ export function WalletConnectButton() {
         }}
       >
         <Wallet className="h-4 w-4" />
-        Connect & sign in
+        Connect & Sign In
       </Button>
     );
   }
@@ -128,7 +128,7 @@ export function WalletConnectButton() {
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--color-error-bg)] transition-colors"
             >
               <LogOut className="h-4 w-4" />
-              Sign out & disconnect
+              Disconnect wallet
             </button>
           </div>
         </>

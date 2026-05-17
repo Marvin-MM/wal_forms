@@ -1,91 +1,37 @@
 "use client";
 import { useConnectWallet, useWallets, useCurrentAccount } from "@mysten/dapp-kit";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Blocks,
-  Database,
-  FileText,
-  Layers,
-  LockKeyhole,
-  Play,
-  Vote,
-  WandSparkles,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, BarChart3, Database, ShieldCheck, Plus, Type, List } from "lucide-react";
 import { motion, Variants } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/Button";
 import { useAuth } from "../../hooks/useAuth";
 import { toast } from "sonner";
+import { cn } from "../../lib/utils";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.08 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 22 },
-  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
 
-const spinnerCards = [
-  {
-    title: "Receipts",
-    subtitle: "Sui Proof",
-    tag: "0x verified",
-    icon: Blocks,
-    gradient: "from-violet-500 via-indigo-500 to-cyan-400",
-    tilt: "-rotate-[18deg]",
-  },
-  {
-    title: "Storage",
-    subtitle: "Walrus Blob",
-    tag: "sealed",
-    icon: Database,
-    gradient: "from-cyan-400 via-sky-500 to-violet-500",
-    tilt: "-rotate-[10deg]",
-  },
-  {
-    title: "Forms",
-    subtitle: "Builder",
-    tag: "new",
-    icon: FileText,
-    gradient: "from-violet-400 via-fuchsia-500 to-indigo-500",
-    tilt: "rotate-0",
-  },
-  {
-    title: "Private",
-    subtitle: "Seal Policy",
-    tag: "encrypted",
-    icon: LockKeyhole,
-    gradient: "from-indigo-500 via-violet-500 to-purple-400",
-    tilt: "rotate-[10deg]",
-  },
-  {
-    title: "Voting",
-    subtitle: "DAO Flow",
-    tag: "token gate",
-    icon: Vote,
-    gradient: "from-cyan-500 via-teal-400 to-indigo-500",
-    tilt: "rotate-[18deg]",
-  },
-  {
-    title: "Analysis",
-    subtitle: "AI Summary",
-    tag: "instant",
-    icon: WandSparkles,
-    gradient: "from-purple-500 via-violet-500 to-cyan-400",
-    tilt: "rotate-[26deg]",
-  },
-];
-
-export function HeroSection() {
+export function HeroSection({ statsBadge }: { statsBadge?: React.ReactNode }) {
   const wallets = useWallets();
   const { mutate: connectWallet, isPending } = useConnectWallet();
   const currentAccount = useCurrentAccount();
   const { isAuthenticated } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function handleConnect() {
     const w = wallets[0];
@@ -94,151 +40,178 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative isolate overflow-hidden bg-[#fbfbff] px-4 pb-0 pt-10 text-slate-950 transition-colors duration-300 dark:bg-[#05070f] dark:text-white sm:px-6 lg:pt-12">
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_50%_26%,rgba(139,92,246,0.14),transparent_30%),radial-gradient(circle_at_18%_70%,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,#ffffff_0%,#fbfbff_56%,#f2efff_100%)] dark:bg-[radial-gradient(circle_at_50%_24%,rgba(139,92,246,0.24),transparent_30%),radial-gradient(circle_at_18%_70%,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,#05070f_0%,#0b1020_56%,#101127_100%)]"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-x-0 top-0 -z-10 h-64 bg-[linear-gradient(90deg,rgba(124,58,237,0.06)_1px,transparent_1px),linear-gradient(rgba(14,165,233,0.06)_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:linear-gradient(to_bottom,black,transparent)] dark:bg-[linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.07)_1px,transparent_1px)]"
-      />
+    <section className="relative overflow-hidden bg-[var(--bg-base)] px-4 pb-16 pt-12 text-[var(--text-primary)] transition-colors duration-300 sm:px-6 lg:pb-24 lg:pt-20">
+      {/* Background gradients */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--color-brand-500)_0%,transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(70%_0.15_240)_0%,transparent_50%)] opacity-10 dark:opacity-20" />
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="mx-auto flex max-w-7xl flex-col items-center text-center"
-      >
-
-        <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-          <h1 className="text-5xl font-black tracking-tight text-slate-950 dark:text-white sm:text-6xl md:text-7xl lg:text-[3.25rem]">
-            WalForms
-          </h1>
+      <div className="mx-auto max-w-7xl">
+        <div className="lg:grid lg:grid-cols-12 lg:items-center lg:gap-16">
           
-        </motion.div>
-
-        <motion.p variants={itemVariants} className="mt-4 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-md">
-          Bring forms, votes, applications, and feedback on-chain with Walrus storage, Sui receipts,
-          Seal privacy, and an interface that feels fast enough for real product teams.
-        </motion.p>
-
-        <motion.div variants={itemVariants} className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          {isAuthenticated ? (
-            <Link href="/builder">
-              <Button size="lg" variant="primary" className="h-11 rounded-full bg-slate-950 px-8 text-sm text-white hover:bg-violet-700 dark:bg-white dark:text-slate-950 dark:hover:bg-violet-100">
-                Open builder
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          ) : (
-            <Button
-              size="lg"
-              variant="primary"
-              loading={isPending}
-              onClick={handleConnect}
-              className="h-11 rounded-full bg-slate-950 px-8 text-sm text-white hover:bg-violet-700 dark:bg-white dark:text-slate-950 dark:hover:bg-violet-100"
-            >
-              {currentAccount ? "Sign in to build" : "Connect wallet"}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
-          <Link href="#how-it-works">
-            <Button
-              size="lg"
-              variant="secondary"
-              className="h-11 rounded-full border-slate-950 bg-white px-8 text-sm text-slate-950 hover:bg-slate-50 dark:border-white/25 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
-            >
-              Learn More
-            </Button>
-          </Link>
-        </motion.div>
-        
-
-        <motion.div variants={itemVariants} className="relative mt-7 h-[310px] w-full overflow-hidden sm:h-[340px] lg:h-[370px]">
-          <div
-            aria-hidden
-            className="absolute left-1/2 top-[190px] z-0 h-[560px] w-[1240px] -translate-x-1/2 rounded-[100%] border-t border-violet-200 bg-violet-100/70 dark:border-violet-300/15 dark:bg-violet-300/10 sm:top-[214px] lg:top-[230px]"
-          />
+          {/* Left Column */}
           <motion.div
-            aria-hidden
-            animate={{ rotate: -360 }}
-            transition={{ duration: 54, repeat: Infinity, ease: "linear" }}
-            className="absolute left-1/2 top-[70px] z-10 h-[820px] w-[820px] -translate-x-1/2 rounded sm:top-[74px] sm:h-[920px] sm:w-[920px] lg:top-[76px] lg:h-[1040px] lg:w-[1040px]"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-center lg:col-span-6 lg:text-left"
           >
-            {Array.from({ length: 18 }).map((_, index) => {
-              const angle = index * 20;
-              const card = spinnerCards[index % spinnerCards.length]!;
-              return (
-                <div
-                  key={`${card.title}-${index}`}
-                  className="absolute left-1/2 top-0 -translate-x-1/9 origin-[50%_410px] sm:origin-[50%_460px] lg:origin-[50%_520px]"
-                  style={{ transform: `rotate(${angle}deg)` }}
+            {statsBadge && (
+              <motion.div variants={itemVariants}>
+                {statsBadge}
+              </motion.div>
+            )}
+            
+            <motion.h1 variants={itemVariants} className="text-5xl font-black tracking-tight sm:text-6xl md:text-7xl lg:text-[4.5rem] lg:leading-[1.05]">
+              Put privacy <br className="hidden lg:block" />
+              <span className="relative inline-block">
+                first
+                <svg aria-hidden="true" viewBox="0 0 418 42" className="absolute left-0 top-2/3 h-[0.4em] w-full fill-[var(--color-brand-300)] opacity-70" preserveAspectRatio="none"><path d="M203.371.916c-26.013-2.078-76.686 1.963-124.738 14.528-67.5 17.65-122.617 48.067-122.617 48.067L1.246 64.91s52.793-27.425 119.53-43.916c68.324-16.883 147.243-20.916 200.73-15.698 33.344 3.25 56.12 11.026 63.812 14.653l12.181-22.378c-9.018-4.226-31.954-12.756-72.396-16.655h.005zM294.025 8.163c-33.877-5.918-79.626-6.425-122.923-4.148-35.035 1.841-70.36 6.848-100.998 12.35L74.88 40.598c30.297-5.59 66.868-10.74 102.723-12.637 40.574-2.14 83.568-1.503 115.545 4.385l1.042-23.868-1.165-.315z"/></svg>
+              </span>
+            </motion.h1>
+
+            <motion.p variants={itemVariants} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] lg:mx-0 lg:text-xl">
+              Fast, user-friendly and engaging — turn forms, votes, and applications into verifiable on-chain records with Walrus storage and Sui receipts.
+            </motion.p>
+
+            <motion.div variants={itemVariants} className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
+              {mounted ? (
+                isAuthenticated ? (
+                  <Link href="/builder" className="w-full sm:w-auto">
+                    <Button size="lg" variant="primary" className="w-full rounded-full bg-[var(--color-brand-600)] px-8 font-bold text-white shadow-lg hover:bg-[var(--color-brand-700)] h-12">
+                      Open Builder
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    size="lg"
+                    variant="primary"
+                    loading={isPending}
+                    onClick={handleConnect}
+                    className="w-full sm:w-auto rounded-full bg-[var(--color-brand-600)] px-8 font-bold text-white shadow-lg hover:bg-[var(--color-brand-700)] h-12"
+                  >
+                    {currentAccount ? "Sign in to build" : "Connect Wallet"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )
+              ) : (
+                <div className="w-full sm:w-[180px] h-12 rounded-full bg-[var(--bg-muted)] animate-pulse" />
+              )}
+              
+              <Link href="#how-it-works" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="w-full rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] px-8 font-bold text-[var(--text-primary)] shadow-sm hover:bg-[var(--bg-subtle)] h-12"
                 >
-                  <SpinnerCard {...card} />
+                  Book a demo
+                </Button>
+              </Link>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="mt-12 grid grid-cols-2 gap-8 border-t border-[var(--border-default)] pt-8 sm:grid-cols-3">
+              <div>
+                <p className="text-3xl font-black text-[var(--text-primary)]">100%</p>
+                <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">On-chain storage</p>
+              </div>
+              <div>
+                <p className="text-3xl font-black text-[var(--text-primary)]">~0s</p>
+                <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">Finality time</p>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <div className="flex justify-center lg:justify-start items-center gap-1">
+                  {[1,2,3,4,5].map(i => <ShieldCheck key={i} className="h-5 w-5 text-[var(--color-brand-500)]" fill="currentColor" />)}
+                  <span className="ml-1 text-xl font-bold text-[var(--text-primary)]">5.0</span>
                 </div>
-              );
-            })}
+                <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">Security rating</p>
+              </div>
+            </motion.div>
           </motion.div>
 
-          <div
-            aria-hidden
-            className="absolute bottom-0 left-1/2 z-20 h-20 w-[460px] -translate-x-1/2 rounded-t-full bg-[conic-gradient(from_180deg,#8b5cf6,#c4b5fd,#67e8f9,#8b5cf6)] opacity-95 dark:opacity-80 sm:h-24 sm:w-[600px]"
-          />
-          <div
-            aria-hidden
-            className="absolute bottom-0 left-1/2 z-30 h-16 w-[360px] -translate-x-1/2 rounded-t-full bg-[#fbfbff] dark:bg-[#05070f] sm:h-20 sm:w-[500px]"
-          />
+          {/* Right Column - 3D Isometric UI */}
+          <div className="relative mt-20 lg:col-span-6 lg:mt-0 flex h-[400px] sm:h-[500px] items-center justify-center perspective-[2000px]">
+            <motion.div
+              initial={{ opacity: 0, rotateX: 60, rotateZ: -45, y: 50 }}
+              animate={{ opacity: 1, rotateX: 60, rotateZ: -45, y: 0 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="relative w-[280px] sm:w-[360px] aspect-square"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              {/* Base Form Card */}
+              <motion.div
+                animate={{ z: [0, 20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-3xl bg-[var(--bg-elevated)] p-6 shadow-[20px_20px_60px_rgba(0,0,0,0.1),-1px_-1px_0_rgba(255,255,255,1)] dark:shadow-[20px_20px_60px_rgba(0,0,0,0.4),-1px_-1px_0_rgba(255,255,255,0.05)] border border-[var(--border-default)]"
+              >
+                <div className="h-6 w-32 rounded-full bg-[var(--bg-muted)] mb-6" />
+                <div className="space-y-4">
+                  <div className="h-12 w-full rounded-xl bg-[var(--bg-subtle)]" />
+                  <div className="h-12 w-full rounded-xl bg-[var(--bg-subtle)]" />
+                  <div className="h-24 w-full rounded-xl bg-[var(--bg-subtle)]" />
+                  <div className="h-12 w-1/2 rounded-xl bg-[var(--color-brand-500)]" />
+                </div>
+              </motion.div>
 
-          <div className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2">
-            <span className="h-1.5 w-7 rounded-full bg-slate-800 dark:bg-white" />
-            {Array.from({ length: 7 }).map((_, index) => (
-              <span key={index} className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-white/25" />
-            ))}
+              {/* Floating Builder Tool Card (Top Left) */}
+              <motion.div
+                animate={{ z: [50, 80, 50] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute -left-12 -top-6 h-40 w-48 rounded-2xl bg-[var(--bg-elevated)]/90 p-4 shadow-[15px_15px_40px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[15px_15px_40px_rgba(0,0,0,0.4)] border border-[var(--border-subtle)] flex flex-col gap-3"
+              >
+                <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-2">
+                  <div className="h-5 w-5 rounded-md bg-[var(--color-brand-100)] flex items-center justify-center">
+                    <Plus className="h-3.5 w-3.5 text-[var(--color-brand-600)]" />
+                  </div>
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Add Field</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 p-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)]">
+                    <Type className="h-3 w-3 text-[var(--text-tertiary)]" />
+                    <div className="h-2 w-16 bg-[var(--bg-muted)] rounded-full" />
+                  </div>
+                  <div className="flex items-center gap-2 p-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--color-brand-300)] shadow-sm">
+                    <List className="h-3 w-3 text-[var(--color-brand-500)]" />
+                    <div className="h-2 w-12 bg-[var(--color-brand-200)] rounded-full" />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Floating Chart Card (Top Right) */}
+              <motion.div
+                animate={{ z: [40, 70, 40] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute -right-8 -top-12 h-48 w-60 rounded-2xl bg-[var(--bg-elevated)]/90 p-5 shadow-[15px_15px_40px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[15px_15px_40px_rgba(0,0,0,0.4)] border border-[var(--border-subtle)] flex flex-col justify-between"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-20 rounded-full bg-[var(--bg-muted)]" />
+                  <BarChart3 className="h-5 w-5 text-[var(--color-brand-500)]" />
+                </div>
+                <div className="flex items-end gap-3 h-24 mt-4">
+                  <div className="w-1/4 bg-[var(--color-brand-200)] rounded-t-md h-1/3" />
+                  <div className="w-1/4 bg-[var(--color-brand-300)] rounded-t-md h-2/3" />
+                  <div className="w-1/4 bg-[var(--color-brand-400)] rounded-t-md h-1/2" />
+                  <div className="w-1/4 bg-[var(--color-brand-500)] rounded-t-md h-full" />
+                </div>
+              </motion.div>
+
+              {/* Floating Status Card (Bottom Left) */}
+              <motion.div
+                animate={{ z: [30, 60, 30] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                className="absolute -bottom-8 -left-12 h-32 w-56 rounded-2xl bg-[var(--bg-elevated)]/90 p-4 shadow-[15px_15px_40px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[15px_15px_40px_rgba(0,0,0,0.4)] border border-[var(--border-subtle)] flex flex-col gap-3 justify-center"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-6 w-6 text-[var(--color-success)]" />
+                  <div className="h-3 w-24 rounded-full bg-[var(--bg-muted)]" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Database className="h-6 w-6 text-[var(--color-brand-500)]" />
+                  <div className="h-3 w-32 rounded-full bg-[var(--bg-muted)]" />
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
-        </motion.div>
-      </motion.div>
-    </section>
-  );
-}
-
-function SpinnerCard({
-  title,
-  subtitle,
-  tag,
-  icon: Icon,
-  gradient,
-  tilt,
-}: {
-  title: string;
-  subtitle: string;
-  tag: string;
-  icon: typeof Blocks;
-  gradient: string;
-  tilt: string;
-}) {
-  return (
-    <div className={`w-[138px] rounded-2xl bg-violet-300 p-2 shadow-xl shadow-violet-400/20 sm:w-[158px] ${tilt}`}>
-      <div className={`relative h-[112px] overflow-hidden rounded-xl bg-gradient-to-br ${gradient} sm:h-[128px]`}>
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_2px_2px,white_1px,transparent_0)] [background-size:18px_18px]"
-        />
-        <div aria-hidden className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
-        <Icon className="absolute bottom-4 right-4 h-12 w-12 text-white/80" strokeWidth={1.4} />
-        <span className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-950 shadow-sm">
-          <Play className="ml-0.5 h-4 w-4 fill-current" />
-        </span>
-        <span className="absolute bottom-3 left-3 rounded-md bg-slate-950 px-2 py-1 text-[10px] font-bold uppercase text-white">
-          {tag}
-        </span>
-      </div>
-      <div className="px-1 pb-1 pt-2 text-left">
-        <h3 className="text-2xl font-black leading-none tracking-tight text-white">{title}</h3>
-        <div className="mt-2 inline-flex rounded-md bg-white/20 px-2 py-1 text-[10px] font-semibold text-white/90">
-          {subtitle}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

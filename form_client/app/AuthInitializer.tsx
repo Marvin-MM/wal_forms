@@ -18,7 +18,11 @@ export function AuthInitializer() {
 
     (async () => {
       try {
-        const res = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh`, {
+        const url = typeof window === "undefined" 
+          ? `${env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh` 
+          : "/api/auth/refresh";
+          
+        const res = await fetch(url, {
           method: "POST",
           credentials: "include",
         });

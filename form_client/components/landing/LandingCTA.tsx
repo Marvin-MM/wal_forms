@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/Button";
 import { useAuth } from "../../hooks/useAuth";
 import { useConnectWallet, useWallets } from "@mysten/dapp-kit";
@@ -11,6 +12,11 @@ export function LandingCTA() {
   const { isAuthenticated } = useAuth();
   const wallets = useWallets();
   const { mutate: connectWallet, isPending } = useConnectWallet();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <section className="relative overflow-hidden px-4 py-32 transition-colors sm:px-6" aria-labelledby="cta-heading">
@@ -38,26 +44,30 @@ export function LandingCTA() {
               Connect your Sui wallet to create your first form. Submissions are live on-chain in minutes.
             </p>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              {isAuthenticated ? (
-                <Link href="/builder">
-                  <Button size="lg" variant="primary">
-                    Open builder <ArrowRight className="h-4 w-4" />
+              {mounted ? (
+                isAuthenticated ? (
+                  <Link href="/builder">
+                    <Button size="lg" variant="primary">
+                      Open builder <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    size="lg"
+                    variant="primary"
+                    loading={isPending}
+                    onClick={() => {
+                      const w = wallets[0];
+                      if (w) connectWallet({ wallet: w });
+                      else toast.error("No Sui wallet detected.");
+                    }}
+                  >
+                    Connect wallet & start
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
-                </Link>
+                )
               ) : (
-                <Button
-                  size="lg"
-                  variant="primary"
-                  loading={isPending}
-                  onClick={() => {
-                    const w = wallets[0];
-                    if (w) connectWallet({ wallet: w });
-                    else toast.error("No Sui wallet detected.");
-                  }}
-                >
-                  Connect wallet & start
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                <div className="w-full sm:w-[220px] h-11 rounded-lg bg-[var(--bg-muted)] animate-pulse" />
               )}
               <Link href="/verify/0x0">
                 <Button size="lg" variant="ghost" className="hover:bg-[var(--bg-subtle)] transition-colors">
