@@ -92,11 +92,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div>
-            <Link href="/" className="inline-flex items-center gap-3" aria-label="WalrusForms home">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-brand-600)] text-white shadow-[0_0_34px_var(--color-brand-300)]">
-                <Layers className="h-5 w-5" />
-              </span>
-              <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">WalForms</span>
+            <Link href="/" aria-label="WalrusForms home">
+              <img src="/wal-logo.png" alt="WalrusForms Logo" className="h-24 w-auto dark:bg-white dark:p-1 dark:rounded-lg" />
             </Link>
 
             <h2 className="mt-8 max-w-2xl text-4xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-5xl">

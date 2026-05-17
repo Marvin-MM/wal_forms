@@ -23,6 +23,10 @@ export const metadata: Metadata = {
     description: "Create verifiable, on-chain forms on Sui.",
   },
   robots: { index: true, follow: true },
+  icons: {
+    icon: "/logo-icon.png",
+    shortcut: "/logo-icon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

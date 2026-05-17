@@ -55,13 +55,22 @@ export function Header() {
       {/* Left: Logo */}
       <Link
         href="/"
-        className="group flex items-center gap-2 font-black text-[var(--text-primary)] transition hover:opacity-80"
+        className="group flex items-center transition hover:opacity-80"
         aria-label="WalrusForms home"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white shadow-sm">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        </div>
-        <span className="text-xl tracking-tight hidden sm:block">WalForms</span>
+        {/* Mobile Icon (Hidden on sm and larger) */}
+        <img 
+          src="/logo-icon.png" 
+          alt="WalrusForms Icon" 
+          className="sm:hidden w-16 items-start justify-start dark:bg-white dark:p-1.5 dark:rounded-xl" 
+        />
+        
+        {/* Desktop Logo (Visible on sm and larger) */}
+        <img 
+          src="/wal-logo.png" 
+          alt="WalrusForms Logo" 
+          className="hidden sm:flex h-8 w-auto object-contain dark:bg-white dark:p-1 dark:rounded-lg" 
+        />
       </Link>
 
       {/* Center: Navigation (Desktop) */}
