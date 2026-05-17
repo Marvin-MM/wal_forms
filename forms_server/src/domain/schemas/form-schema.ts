@@ -60,7 +60,7 @@ export const ConditionRuleSchema = z.object({
   sourceFieldId: z.string().min(1).max(100),
   operator: ConditionOperatorEnum,
   /** The value to compare against. Ignored for is_empty/is_not_empty. */
-  value: z.string().max(500).optional(),
+  value: z.string().max(500).nullish().transform(v => v ?? undefined),
 });
 
 export type ConditionRule = z.infer<typeof ConditionRuleSchema>;
@@ -69,15 +69,15 @@ export type ConditionRule = z.infer<typeof ConditionRuleSchema>;
 // Validation rules per field
 // ---------------------------------------------------------------------------
 export const FieldValidationSchema = z.object({
-  required: z.boolean().default(false),
-  minLength: z.number().int().positive().optional(),
-  maxLength: z.number().int().positive().optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-  pattern: z.string().optional(),
-  patternMessage: z.string().optional(),
-  allowedFileTypes: z.array(z.string()).optional(),
-  maxFileSize: z.number().int().positive().optional(),
+  required: z.boolean().nullish().transform(v => v ?? false),
+  minLength: z.number().int().positive().nullish().transform(v => v ?? undefined),
+  maxLength: z.number().int().positive().nullish().transform(v => v ?? undefined),
+  min: z.number().nullish().transform(v => v ?? undefined),
+  max: z.number().nullish().transform(v => v ?? undefined),
+  pattern: z.string().nullish().transform(v => v ?? undefined),
+  patternMessage: z.string().nullish().transform(v => v ?? undefined),
+  allowedFileTypes: z.array(z.string()).nullish().transform(v => v ?? undefined),
+  maxFileSize: z.number().int().positive().nullish().transform(v => v ?? undefined),
 }).strict();
 
 // ---------------------------------------------------------------------------
@@ -95,17 +95,17 @@ export const FormFieldSchema = z.object({
   id: z.string().min(1).max(100),
   type: FieldTypeEnum,
   label: z.string().min(1).max(500),
-  placeholder: z.string().max(500).optional(),
-  helpText: z.string().max(1000).optional(),
-  validation: FieldValidationSchema.optional(),
-  options: z.array(FieldOptionSchema).optional(),
-  defaultValue: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).optional(),
+  placeholder: z.string().max(500).nullish().transform(v => v ?? undefined),
+  helpText: z.string().max(1000).nullish().transform(v => v ?? undefined),
+  validation: FieldValidationSchema.nullish().transform(v => v ?? undefined),
+  options: z.array(FieldOptionSchema).nullish().transform(v => v ?? undefined),
+  defaultValue: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).nullish().transform(v => v ?? undefined),
   /**
    * When set, this field is hidden unless the condition evaluates to true.
    * A hidden field is never required regardless of its validation.required flag.
    * Values submitted for hidden fields are stripped before storage.
    */
-  visibilityCondition: ConditionRuleSchema.optional(),
+  visibilityCondition: ConditionRuleSchema.nullish().transform(v => v ?? undefined),
 });
 
 export type FormField = z.infer<typeof FormFieldSchema>;
@@ -115,8 +115,8 @@ export type FormField = z.infer<typeof FormFieldSchema>;
 // ---------------------------------------------------------------------------
 export const FormPageSchema = z.object({
   id: z.string().min(1).max(100),
-  title: z.string().max(200).optional(),
-  description: z.string().max(1000).optional(),
+  title: z.string().max(200).nullish().transform(v => v ?? undefined),
+  description: z.string().max(1000).nullish().transform(v => v ?? undefined),
   fields: z.array(FormFieldSchema).min(1).max(100),
 });
 
@@ -127,21 +127,21 @@ export type FormPage = z.infer<typeof FormPageSchema>;
 // ---------------------------------------------------------------------------
 export const FormSchemaDefinition = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(2000).nullish().transform(v => v ?? undefined),
   /**
    * Multi-step: provide pages (each containing fields).
    * Single-step: provide fields directly — normalized to a single page.
    * At least one of pages or fields must be present.
    */
-  pages: z.array(FormPageSchema).min(1).max(20).optional(),
+  pages: z.array(FormPageSchema).min(1).max(20).nullish().transform(v => v ?? undefined),
   /** Flat field list for single-step forms. Normalized to pages[0] internally. */
-  fields: z.array(FormFieldSchema).min(1).max(100).optional(),
+  fields: z.array(FormFieldSchema).min(1).max(100).nullish().transform(v => v ?? undefined),
   settings: z.object({
-    submitButtonText: z.string().max(100).default('Submit'),
-    successMessage: z.string().max(1000).default('Thank you for your submission!'),
-    allowMultipleSubmissions: z.boolean().default(true),
-    requireAuthentication: z.boolean().default(false),
-  }).optional(),
+    submitButtonText: z.string().max(100).nullish().transform(v => v ?? 'Submit'),
+    successMessage: z.string().max(1000).nullish().transform(v => v ?? 'Thank you for your submission!'),
+    allowMultipleSubmissions: z.boolean().nullish().transform(v => v ?? true),
+    requireAuthentication: z.boolean().nullish().transform(v => v ?? false),
+  }).nullish().transform(v => v ?? undefined),
 }).superRefine((data, ctx) => {
   if (!data.pages && !data.fields) {
     ctx.addIssue({
@@ -175,6 +175,7 @@ export function normalizeFormSchema(schema: FormSchemaType): FormSchemaType & { 
       {
         id: 'page_1',
         title: schema.title,
+        description: undefined,
         fields: schema.fields ?? [],
       },
     ],
