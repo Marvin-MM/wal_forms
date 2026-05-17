@@ -51,9 +51,10 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-    // For WebSockets, we need to replace http/https with ws/wss if necessary, 
-    // or rely on Next.js proxying HTTP upgrade requests correctly.
-    const wsBackendUrl = process.env.NEXT_PUBLIC_WS_BASE_URL || "http://localhost:5000";
+    // Next.js rewrites require http/https destinations, even for proxying WebSockets.
+    // It will automatically forward the 'Upgrade: websocket' headers.
+    const wsUrlRaw = process.env.NEXT_PUBLIC_WS_BASE_URL || "http://localhost:5000";
+    const wsBackendUrl = wsUrlRaw.replace(/^ws:\/\//i, 'http://').replace(/^wss:\/\//i, 'https://');
 
     return [
       {
