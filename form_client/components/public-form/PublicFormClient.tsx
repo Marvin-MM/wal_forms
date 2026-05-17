@@ -122,7 +122,8 @@ export function PublicFormClient({
   const schema = form.denormalizedSchema as FormSchemaType;
   const zodSchema = buildZodSchema(schema.fields);
 
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Turnstile token state (bypassed for now)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>("bypassed");
   const [password, setPassword] = useState<string | null>(null);
 
   const {
@@ -144,9 +145,8 @@ export function PublicFormClient({
 
   const onSubmit = useCallback(
     async (data: Record<string, unknown>) => {
-      if (!turnstileToken) return;
       const payload = await uploadSubmissionFiles(form.id, schema.fields, data);
-      await submit(payload, turnstileToken, password ?? undefined);
+      await submit(payload, turnstileToken || "bypassed", password ?? undefined);
     },
     [form.id, schema.fields, submit, turnstileToken, password]
   );
@@ -284,11 +284,14 @@ export function PublicFormClient({
           </div>
         )}
 
+        {/* Turnstile temporarily bypassed because a valid domain is not available. */}
+        {/*
         <Turnstile
           siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           onSuccess={setTurnstileToken}
           className="mt-6"
         />
+        */}
 
         <div className="mt-6">
           <Button
@@ -296,7 +299,7 @@ export function PublicFormClient({
             variant="primary"
             size="lg"
             className={cn("w-full", accentClass)}
-            disabled={isSubmitting || rhfIsSubmitting || !turnstileToken}
+            disabled={isSubmitting || rhfIsSubmitting}
             loading={isSubmitting || rhfIsSubmitting}
           >
             <AnimatePresence mode="wait" initial={false}>
