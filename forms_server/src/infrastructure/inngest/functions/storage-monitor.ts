@@ -25,7 +25,9 @@ export const storageRenewalMonitor: ReturnType<typeof inngest.createFunction> = 
         defaultEpochs: env.WALRUS_DEFAULT_EPOCHS,
       });
 
-      const thresholdEpoch = Date.now() + 7 * 24 * 60 * 60 * 1000; // expiring within 7 days
+      // Use days since Unix epoch as a stable proxy for Sui epochs in the stub
+      const currentEpoch = Math.floor(Date.now() / 86400000);
+      const thresholdEpoch = currentEpoch + 7; // expiring within 7 days
       
       const expiringBlobs = await db
         .select()
@@ -43,7 +45,7 @@ export const storageRenewalMonitor: ReturnType<typeof inngest.createFunction> = 
         // Auto renew for 30 epochs
         await walrus.renewBlobStorage(blob.id, 30);
         await db.update(walrusBlobs).set({ 
-          expiresAtEpoch: Date.now() + 30 * 24 * 60 * 60 * 1000, 
+          expiresAtEpoch: currentEpoch + 30, 
           status: 'active' 
         }).where(eq(walrusBlobs.id, blob.id));
       }

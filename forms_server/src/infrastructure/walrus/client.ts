@@ -167,7 +167,7 @@ export class WalrusClient {
     if (!blobId) throw new Error('Blob ID required');
     // Stub implementation: assume blob is active and expires far in the future
     return {
-      expiresAtEpoch: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
+      expiresAtEpoch: Math.floor(Date.now() / 86400000) + 30, // 30 days proxy
       isExpiringSoon: false,
     };
   }
@@ -181,7 +181,7 @@ export class WalrusClient {
     logger.info({ blobId, epochs }, '[Walrus] Blob storage renewed (stub)');
     return {
       success: true,
-      newExpiresAtEpoch: Date.now() + 1000 * 60 * 60 * 24 * 30 * epochs,
+      newExpiresAtEpoch: Math.floor(Date.now() / 86400000) + epochs,
     };
   }
 

@@ -50,21 +50,29 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+    // For WebSockets, we need to replace http/https with ws/wss if necessary, 
+    // or rely on Next.js proxying HTTP upgrade requests correctly.
+    const wsBackendUrl = process.env.NEXT_PUBLIC_WS_BASE_URL || "http://localhost:5000";
+
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:5000/:path*", // Proxy to Backend
+        destination: `${backendUrl}/:path*`, // Proxy to Backend
       },
       {
         source: "/ws/:path*",
-        destination: "http://localhost:5000/ws/:path*", // Proxy WebSocket to Backend
+        destination: `${wsBackendUrl}/ws/:path*`, // Proxy WebSocket to Backend
       },
     ];
   },
 
   experimental: {
     serverActions: {
-      allowedOrigins: ["localhost:3001"],
+      allowedOrigins: [
+        "localhost:3001",
+        process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/^https?:\/\//, ""),
+      ].filter((v): v is string => Boolean(v)),
     },
   },
 

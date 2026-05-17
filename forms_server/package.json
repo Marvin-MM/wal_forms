@@ -2,7 +2,6 @@
   "name": "walrus-forms-server",
   "version": "1.0.0",
   "description": "WalrusForms backend server — Walrus-native, on-chain form and feedback platform",
-  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
