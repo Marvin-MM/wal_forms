@@ -137,7 +137,7 @@ export async function submitAnonymousResponse(
         blobId: params.blobId,
         isEncrypted: params.isEncrypted,
         submitterAddress: null,
-        sponsorshipPoolObjectId: null,
+        sponsorshipPoolObjectId: form.sponsorshipPoolObjectId,
       });
       digest = result.digest;
     } catch (error) {

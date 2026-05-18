@@ -27,6 +27,9 @@ export async function createForm(
 
   // 2. Register on Sui (async-safe — if it fails, we still have the DB record)
   let suiObjectId: string | null = null;
+  let ownerCapObjectId: string | null = null;
+  let sponsorshipPoolObjectId: string | null = null;
+
   try {
     const result = await deps.sui.registerForm({
       schemaBlobId: blobId,
@@ -34,6 +37,15 @@ export async function createForm(
       submissionIdentityMode: params.submissionIdentityMode === 'anonymous' ? 0 : params.submissionIdentityMode === 'optional_connected' ? 1 : 2,
     });
     suiObjectId = result.suiObjectId;
+    ownerCapObjectId = result.ownerCapObjectId;
+
+    if (ownerCapObjectId && suiObjectId) {
+      const poolResult = await deps.sui.createSponsorshipPool({
+        ownerCapObjectId,
+        formObjectId: suiObjectId,
+      });
+      sponsorshipPoolObjectId = poolResult.suiObjectId;
+    }
   } catch (error) {
     logger.warn({ error }, '[Forms] Sui registration failed, continuing without on-chain record');
   }
@@ -44,6 +56,8 @@ export async function createForm(
     walrusBlobId: blobId,
     schemaVersion: 1,
     suiObjectId,
+    ownerCapObjectId,
+    sponsorshipPoolObjectId,
     isPrivate: params.isPrivate,
     submissionIdentityMode: params.submissionIdentityMode as 'anonymous' | 'optional_connected' | 'required_connected',
     title: params.schema.title,
@@ -111,7 +125,7 @@ export async function updateFormSchema(
   try {
     const result = await deps.sui.registerSchemaVersion({
       formObjectId: form.suiObjectId ?? '',
-      ownerCapObjectId: '0x0', // owner cap held in frontend wallet
+      ownerCapObjectId: form.ownerCapObjectId ?? '0x0',
       newBlobId,
       parentBlobId,
       versionNumber: newVersion,

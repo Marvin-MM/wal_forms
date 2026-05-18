@@ -87,7 +87,7 @@ export async function upsertFormBranding(
         // does not hold the user's FormOwnerCap. The Sui client argument order
         // must also be aligned with branding.move before enabling it.
         await deps.sui.registerBrandingAssetOnChain({
-          ownerCapObjectId: '0x0', // held in frontend wallet
+          ownerCapObjectId: form.ownerCapObjectId ?? '0x0',
           formObjectId: form.suiObjectId,
           blobId: validated.logoWalrusBlobId,
           assetType: BRANDING_ASSET_TYPE.LOGO,

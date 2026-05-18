@@ -251,11 +251,8 @@ export async function upsertAccessPolicy(
   let suiObjectId: string | null = null;
   if (form.suiObjectId) {
     try {
-      // Follow-up: this best-effort server call is skipped while the server
-      // does not hold the user's FormOwnerCap. Enable a wallet-signed flow
-      // before relying on on-chain policy synchronization.
       const result = await deps.sui.createAccessPolicyOnChain({
-        ownerCapObjectId: '0x0', // placeholder — owner cap is held in frontend wallet
+        ownerCapObjectId: form.ownerCapObjectId ?? '0x0',
         formObjectId: form.suiObjectId,
         requiresAllowlist: data.requiresAllowlist,
         hasResponseLimit: data.hasResponseLimit,
@@ -314,7 +311,7 @@ export async function addAllowlistEntry(
     // Follow-up: access.move expects the Form object when adding entries;
     // keep this best-effort path disabled until the Sui client is aligned.
     await deps.sui.addToAllowlistOnChain({
-      ownerCapObjectId: '0x0',
+      ownerCapObjectId: form.ownerCapObjectId ?? '0x0',
       policyObjectId: policy.suiObjectId,
       allowedAddress: normalized,
     });
@@ -351,7 +348,7 @@ export async function removeAllowlistEntry(
     // Follow-up: access.move removes an AllowlistEntry object, not an address;
     // keep this best-effort path disabled until indexed entry IDs are used.
     await deps.sui.removeFromAllowlistOnChain({
-      ownerCapObjectId: '0x0',
+      ownerCapObjectId: form.ownerCapObjectId ?? '0x0',
       policyObjectId: policy.suiObjectId,
       addressToRemove: normalized,
     });

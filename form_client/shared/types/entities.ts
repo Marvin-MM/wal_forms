@@ -11,6 +11,8 @@ export interface Form {
   walrusBlobId: string;
   schemaVersion: number;
   suiObjectId: string | null;
+  ownerCapObjectId: string | null;
+  sponsorshipPoolObjectId: string | null;
   isPrivate: boolean;
   isClosed: boolean;
   isDeleted: boolean;

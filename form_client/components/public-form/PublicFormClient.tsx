@@ -140,7 +140,7 @@ export function PublicFormClient({
     identityMode,
     isPrivate: form.isPrivate,
     ownerWallet: form.ownerWallet,
-    sponsorshipEnabled: false,
+    sponsorshipEnabled: !!form.sponsorshipPoolObjectId,
   });
 
   const onSubmit = useCallback(

@@ -89,8 +89,8 @@ export class SuiBlockchainClient {
     schemaBlobId: string;
     isPrivate: boolean;
     submissionIdentityMode: number; // 0=anonymous, 1=optional_connected, 2=required_connected
-  }): Promise<{ suiObjectId: string | null }> {
-    if (!this.isReady('registerForm')) return { suiObjectId: null };
+  }): Promise<{ suiObjectId: string | null; ownerCapObjectId: string | null }> {
+    if (!this.isReady('registerForm')) return { suiObjectId: null, ownerCapObjectId: null };
 
     return this.executeWithRetry(async () => {
       const tx = new Transaction();
@@ -103,10 +103,37 @@ export class SuiBlockchainClient {
         ],
       });
       const result = await this.signAndExecute(tx);
-      const objectId = this.extractCreatedObjectId(result);
-      logger.info({ objectId }, '[Sui] Form registered on-chain');
-      return { suiObjectId: objectId };
+      const objects = this.extractCreatedObjectIdsByType(result);
+      const suiObjectId = objects[`${this.packageId}::form::Form`] || null;
+      const ownerCapObjectId = objects[`${this.packageId}::form::FormOwnerCap`] || null;
+      logger.info({ objectId: suiObjectId, ownerCapObjectId }, '[Sui] Form registered on-chain');
+      return { suiObjectId, ownerCapObjectId };
     }, 'registerForm');
+  }
+
+  async createSponsorshipPool(params: {
+    ownerCapObjectId: string;
+    formObjectId: string;
+  }): Promise<{ suiObjectId: string | null }> {
+    if (!this.isReady('createSponsorshipPool')) return { suiObjectId: null };
+    if (params.ownerCapObjectId === '0x0') return { suiObjectId: null };
+
+    return this.executeWithRetry(async () => {
+      const tx = new Transaction();
+      const serverAddress = this.keypair!.getPublicKey().toSuiAddress();
+      tx.moveCall({
+        target: `${this.packageId}::sponsorship::create_sponsorship_pool`,
+        arguments: [
+          tx.object(params.ownerCapObjectId),
+          tx.object(params.formObjectId),
+          tx.pure.address(serverAddress),
+        ],
+      });
+      const result = await this.signAndExecute(tx);
+      const objectId = this.extractCreatedObjectId(result);
+      logger.info({ objectId, formId: params.formObjectId }, '[Sui] Sponsorship Pool created on-chain');
+      return { suiObjectId: objectId };
+    }, 'createSponsorshipPool');
   }
 
   async registerSchemaVersion(params: {
@@ -460,6 +487,20 @@ export class SuiBlockchainClient {
       if (createdChange?.objectId) return createdChange.objectId;
     }
     return result.digest;
+  }
+
+  private extractCreatedObjectIdsByType(result: {
+    objectChanges?: Array<{ type: string; objectId?: string; objectType?: string }> | null;
+  }): Record<string, string> {
+    const ids: Record<string, string> = {};
+    if (result.objectChanges) {
+      for (const change of result.objectChanges) {
+        if (change.type === 'created' && change.objectType && change.objectId) {
+          ids[change.objectType] = change.objectId;
+        }
+      }
+    }
+    return ids;
   }
 
   private async executeWithRetry<T>(

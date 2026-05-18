@@ -46,6 +46,8 @@ export const forms = pgTable(
     walrusBlobId: varchar('walrus_blob_id', { length: 255 }).notNull(),
     schemaVersion: integer('schema_version').notNull().default(1),
     suiObjectId: varchar('sui_object_id', { length: 255 }),
+    ownerCapObjectId: varchar('owner_cap_object_id', { length: 255 }),
+    sponsorshipPoolObjectId: varchar('sponsorship_pool_object_id', { length: 255 }),
     isPrivate: boolean('is_private').notNull().default(false),
     isClosed: boolean('is_closed').notNull().default(false),
     isDeleted: boolean('is_deleted').notNull().default(false),
